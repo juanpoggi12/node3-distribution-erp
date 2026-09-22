@@ -1,85 +1,105 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
-  Boxes,
-  Building2,
-  Check,
-  ClipboardCheck,
-  ClipboardList,
   LayoutDashboard,
+  Package,
+  Users,
+  Boxes,
+  WalletCards,
+  MessageCircle,
   Plus,
   RefreshCcw,
+  Check,
+  Building2,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 
 import type {
-  Customer,
   DemoState,
+  ViewKey,
   NewOrderDraft,
-  Order,
-  OrderDocumentType,
   OrderStatus,
   Product,
-  ViewKey,
+  Customer,
+  Inquiry,
+  PaymentMethod,
 } from "@/lib/types";
-import { buildOrderFromDraft, findProduct, isValidOrderTransition } from "@/lib/business";
-import { initialDemoState } from "@/lib/demo-data";
-import { DashboardView } from "@/components/dashboard";
-import {
-  NewOrderView,
-  OrderDocumentModal,
-  OrdersView,
-  PreparationView,
-} from "@/components/orders";
-import { ProductsView } from "@/components/products";
 
-const STORAGE_KEY = "el-bayo-prototipo-v1";
+import {
+  buildOrderFromDraft,
+  buildSuggestedLines,
+  findCustomer,
+  findProduct,
+  getOrderTotal,
+  getOrderBalance,
+  getOrderPaidAmount,
+  getCustomerCreditUsed,
+  isStockCommitted,
+  isValidOrderTransition,
+  getDashboardMetrics,
+  generateOrderMessage,
+  generateCollectionMessage,
+  generateFollowUpMessage,
+  generateCatalogMessage,
+  getDaysOverdue,
+  createWhatsAppUrl,
+} from "@/lib/business";
+
+import { initialDemoState } from "@/lib/demo-data";
+import { formatCurrency, getLocalDateKey, normalizeText } from "@/lib/format";
+
+import { DashboardView } from "@/components/dashboard";
+import { OrdersView } from "@/components/orders";
+import { CustomersView } from "@/components/customers";
+import { ProductsView } from "@/components/products";
+import { CollectionsView } from "@/components/collections";
+import { InquiriesView } from "@/components/inquiries";
+
+const STORAGE_KEY = "node3-demo";
 
 const navItems: Array<{ key: ViewKey; label: string; icon: LucideIcon }> = [
   { key: "inicio", label: "Inicio", icon: LayoutDashboard },
-  { key: "pedidos", label: "Pedidos", icon: ClipboardList },
-  { key: "preparacion", label: "Preparación", icon: ClipboardCheck },
-  { key: "productos", label: "Productos y stock", icon: Boxes },
+  { key: "pedidos", label: "Pedidos", icon: Package },
+  { key: "clientes", label: "Clientes", icon: Users },
+  { key: "productos", label: "Productos", icon: Boxes },
+  { key: "cobrar", label: "Cobrar", icon: WalletCards },
+  { key: "consultas", label: "Consultas", icon: MessageCircle },
 ];
 
-const pageTitles: Partial<Record<ViewKey, { title: string; sub: string }>> = {
-  inicio: { title: "Panel de trabajo", sub: "Lo importante para preparar los pedidos de hoy." },
-  pedidos: { title: "Pedidos", sub: "Consulta el historial y genera sus documentos." },
-  preparacion: { title: "Preparación", sub: "Trabajo pendiente para el depósito." },
-  productos: { title: "Productos y stock", sub: "Catálogo cargado desde el documento de referencia." },
-  "nuevo-pedido": { title: "Nuevo pedido", sub: "Carga cantidades, controla stock y confirma." },
+const pageTitles: Record<ViewKey, { title: string; sub: string }> = {
+  inicio: { title: "Panel operativo", sub: "Todo el negocio en una vista." },
+  pedidos: { title: "Pedidos", sub: "Crear, preparar y entregar." },
+  clientes: { title: "Clientes", sub: "Tu cartera comercial." },
+  productos: { title: "Productos", sub: "Catálogo y listas de precios." },
+  cobrar: { title: "Cobrar", sub: "Deuda pendiente y recordatorios." },
+  consultas: { title: "Consultas", sub: "Seguimiento de oportunidades." },
 };
 
-const emptyDraft: NewOrderDraft = {
-  customerId: "",
-  lines: [],
-  notes: "",
-  saleCondition: "CUENTA CORRIENTE",
-  seller: "1",
-};
+const emptyDraft: NewOrderDraft = { customerId: "", lines: [], notes: "" };
 
 function loadState(): DemoState {
-  if (typeof window === "undefined") return initialDemoState;
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return initialDemoState;
-  try {
-    return JSON.parse(saved) as DemoState;
-  } catch {
-    return initialDemoState;
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // ignore
+      }
+    }
   }
+  return initialDemoState;
 }
 
 export function ErpApp() {
   const [view, setView] = useState<ViewKey>("inicio");
   const [state, setState] = useState<DemoState>(initialDemoState);
   const [storageReady, setStorageReady] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState("c-kiosco-amigos");
   const [draft, setDraft] = useState<NewOrderDraft>(emptyDraft);
   const [toast, setToast] = useState<string | null>(null);
-  const [documentRequest, setDocumentRequest] = useState<{
-    order: Order;
-    type: OrderDocumentType;
-  } | null>(null);
 
   useEffect(() => {
     setState(loadState());
@@ -87,19 +107,24 @@ export function ErpApp() {
   }, []);
 
   useEffect(() => {
-    if (storageReady) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (storageReady) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
   }, [state, storageReady]);
 
   useEffect(() => {
-    if (!toast) return;
-    const timer = window.setTimeout(() => setToast(null), 3200);
-    return () => window.clearTimeout(timer);
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 2600);
+      return () => clearTimeout(timer);
+    }
   }, [toast]);
 
-  const pendingPreparation = useMemo(
-    () => state.orders.filter((order) => ["confirmado", "preparacion"].includes(order.status)).length,
-    [state.orders],
-  );
+  const metrics = useMemo(() => getDashboardMetrics(state), [state]);
+  const navBadges: Partial<Record<ViewKey, number>> = {
+    pedidos: metrics.pendingOrders,
+    cobrar: metrics.deliveredUnpaid,
+    consultas: metrics.openInquiries,
+  };
 
   const todayLabel = new Intl.DateTimeFormat("es-AR", {
     weekday: "long",
@@ -107,302 +132,547 @@ export function ErpApp() {
     month: "long",
   }).format(new Date());
 
-  const openNewOrder = () => {
-    setDraft({ ...emptyDraft, customerId: state.customers[0]?.id ?? "" });
-    setView("nuevo-pedido");
+  const showToast = (msg: string) => setToast(msg);
+
+  const resetDemo = () => {
+    setState(initialDemoState);
+    setDraft(emptyDraft);
+    showToast("Datos de demostración reiniciados");
   };
 
   const addProductToDraft = (product: Product) => {
-    setDraft((current) => {
-      const existing = current.lines.find((line) => line.productId === product.id);
+    const customer = state.customers.find((c) => c.id === draft.customerId);
+    const priceList = customer?.priceList ?? "mayorista";
+
+    setDraft((prev) => {
+      const existing = prev.lines.find((l) => l.productId === product.id);
       if (existing) {
         return {
-          ...current,
-          lines: current.lines.map((line) =>
-            line.productId === product.id
-              ? {
-                  ...line,
-                  packages: (line.packages ?? 1) + 1,
-                  quantity: line.quantity + 1,
-                }
-              : line,
+          ...prev,
+          lines: prev.lines.map((l) =>
+            l.productId === product.id ? { ...l, quantity: l.quantity + 1 } : l
           ),
         };
       }
       return {
-        ...current,
+        ...prev,
         lines: [
-          ...current.lines,
+          ...prev.lines,
           {
             productId: product.id,
-            packages: 1,
             quantity: 1,
-            unitPrice: product.prices.mayorista,
+            unitPrice: product.prices[priceList],
           },
         ],
       };
     });
   };
 
-  const updateDraftLine = (
-    productId: string,
-    changes: Partial<{ packages: number; quantity: number; unitPrice: number }>,
-  ) => {
-    setDraft((current) => ({
-      ...current,
-      lines: current.lines.map((line) =>
-        line.productId === productId ? { ...line, ...changes } : line,
-      ),
+  const updateDraftQuantity = (productId: string, qty: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      lines: prev.lines.map((l) => (l.productId === productId ? { ...l, quantity: qty } : l)),
     }));
   };
 
   const removeDraftLine = (productId: string) => {
-    setDraft((current) => ({
-      ...current,
-      lines: current.lines.filter((line) => line.productId !== productId),
+    setDraft((prev) => ({
+      ...prev,
+      lines: prev.lines.filter((l) => l.productId !== productId),
     }));
   };
 
   const submitDraftOrder = () => {
-    if (!draft.customerId || draft.lines.length === 0) {
-      setToast("Selecciona un cliente y agrega al menos un producto.");
+    if (!draft.customerId || draft.lines.length === 0) return;
+
+    // Validate customer status
+    const customer = findCustomer(state.customers, draft.customerId);
+    if (customer?.status === "moroso") {
+      showToast("⚠️ Cliente moroso — no se puede crear el pedido.");
       return;
     }
 
+    // Validate credit limit
+    if (customer) {
+      const currentDebt = getCustomerCreditUsed(customer, state.orders);
+      const orderTotal = draft.lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0);
+      if (customer.creditLimit > 0 && currentDebt + orderTotal > customer.creditLimit) {
+        showToast(`⚠️ Supera límite de crédito (${formatCurrency(customer.creditLimit)}).`);
+        return;
+      }
+    }
+
+    // Validate stock availability
     for (const line of draft.lines) {
       const product = findProduct(state.products, line.productId);
       if (product && line.quantity > product.stock) {
-        setToast(`No alcanza el stock de ${product.name}. Disponible: ${product.stock} ${product.unit}.`);
+        showToast(`⚠️ Stock insuficiente de ${product.name} (hay ${product.stock}).`);
         return;
       }
     }
 
     const newOrder = buildOrderFromDraft(draft, state.orders, state.customers);
-    setState((current) => ({
-      ...current,
-      orders: [newOrder, ...current.orders],
-      products: current.products.map((product) => {
-        const line = draft.lines.find((item) => item.productId === product.id);
-        return line ? { ...product, stock: Math.max(0, product.stock - line.quantity) } : product;
-      }),
-    }));
+
+    setState((prev) => {
+      let inquiries = prev.inquiries;
+      if (draft.inquiryId) {
+        inquiries = prev.inquiries.map((i) =>
+          i.id === draft.inquiryId
+            ? { ...i, status: "convertida", convertedOrderId: newOrder.id }
+            : i
+        );
+      }
+      // Deduct stock
+      const products = prev.products.map((p) => {
+        const line = draft.lines.find((l) => l.productId === p.id);
+        return line ? { ...p, stock: Math.max(0, p.stock - line.quantity) } : p;
+      });
+      return {
+        ...prev,
+        orders: [...prev.orders, newOrder],
+        inquiries,
+        products,
+      };
+    });
+
     setDraft(emptyDraft);
+    showToast(`Pedido #${newOrder.number} creado con éxito`);
+  };
+
+  const convertInquiry = (inquiry: Inquiry) => {
+    let customerId = inquiry.customerId;
+
+    if (!customerId) {
+      const newCustomer: Customer = {
+        id: `c-${Date.now()}`,
+        businessName: inquiry.prospectName,
+        contactName: inquiry.prospectName,
+        phone: "",
+        address: "",
+        city: "",
+        zone: "Sin zona",
+        customerType: "Nuevo",
+        priceList: "mayorista",
+        creditLimit: 0,
+        currentDebt: 0,
+        status: "activo",
+        notes: "Creado desde consulta",
+      };
+      setState((prev) => ({
+        ...prev,
+        customers: [...prev.customers, newCustomer],
+      }));
+      customerId = newCustomer.id;
+    }
+
+    const lines = buildSuggestedLines(
+      inquiry,
+      state.products,
+      state.customers.find((c) => c.id === customerId)
+    );
+
+    setDraft({
+      customerId,
+      inquiryId: inquiry.id,
+      lines,
+      notes: `Viene de consulta: ${inquiry.text}`,
+    });
     setView("pedidos");
-    setDocumentRequest({ order: newOrder, type: "nota" });
-    setToast(`Pedido #${newOrder.number} confirmado. El stock fue actualizado.`);
   };
 
   const updateOrderStatus = (orderId: string, status: OrderStatus) => {
-    const current = state.orders.find((order) => order.id === orderId);
-    if (!current || current.status === status) return;
-    if (!isValidOrderTransition(current.status, status)) {
-      setToast("Ese cambio no corresponde al flujo de preparación.");
+    const order = state.orders.find((item) => item.id === orderId);
+    if (!order || order.status === status) return;
+
+    if (!isValidOrderTransition(order.status, status)) {
+      showToast("Ese cambio de estado no corresponde al flujo del pedido.");
       return;
     }
-    setState((previous) => ({
-      ...previous,
-      orders: previous.orders.map((order) =>
-        order.id === orderId ? { ...order, status } : order,
+
+    setState((prev) => {
+      const current = prev.orders.find((item) => item.id === orderId);
+      if (!current) return prev;
+
+      const payment =
+        status === "pagado" && getOrderBalance(current) > 0
+          ? {
+              id: `pay-${Date.now()}`,
+              amount: getOrderBalance(current),
+              method: "Efectivo" as PaymentMethod,
+              date: getLocalDateKey(),
+              reference: "Pago confirmado desde el pedido",
+            }
+          : undefined;
+      const shouldRestoreStock = isStockCommitted(current.status) && !isStockCommitted(status);
+      const finalStatus =
+        status === "entregado_sin_cobrar" && getOrderBalance(current) === 0 ? "pagado" : status;
+
+      return {
+        ...prev,
+        products: shouldRestoreStock
+          ? prev.products.map((product) => {
+              const line = current.lines.find((item) => item.productId === product.id);
+              return line ? { ...product, stock: product.stock + line.quantity } : product;
+            })
+          : prev.products,
+        orders: prev.orders.map((item) =>
+          item.id === orderId
+            ? {
+                ...item,
+                status: finalStatus,
+                paidAmount: payment ? getOrderPaidAmount(item) + payment.amount : item.paidAmount,
+                payments: payment ? [...(item.payments ?? []), payment] : item.payments,
+              }
+            : item,
+        ),
+      };
+    });
+    showToast(status === "cancelado" ? "Pedido cancelado y stock restituido." : "Estado del pedido actualizado.");
+  };
+
+  const registerPayment = (
+    orderId: string,
+    amount: number | undefined,
+    method: PaymentMethod,
+    reference?: string,
+  ) => {
+    setState((prev) => {
+      const order = prev.orders.find((o) => o.id === orderId);
+      if (!order) return prev;
+
+      const balanceBeforePayment = getOrderBalance(order);
+      if (balanceBeforePayment === 0) return prev;
+      const collected = Math.min(amount ?? balanceBeforePayment, balanceBeforePayment);
+      if (collected <= 0) return prev;
+      const paid = getOrderPaidAmount(order) + collected;
+
+      const balance = Math.max(0, getOrderTotal(order) - paid);
+      let status = order.status;
+
+      if (balance === 0 && ["entregado", "entregado_sin_cobrar"].includes(status)) {
+        status = "pagado";
+      }
+
+      return {
+        ...prev,
+        orders: prev.orders.map((o) =>
+          o.id === orderId
+            ? {
+                ...o,
+                paidAmount: paid,
+                status,
+                payments: [
+                  ...(o.payments ?? []),
+                  {
+                    id: `pay-${Date.now()}`,
+                    amount: collected,
+                    method,
+                    date: getLocalDateKey(),
+                    reference: reference?.trim() || undefined,
+                  },
+                ],
+              }
+            : o,
+        ),
+      };
+    });
+    showToast("Pago registrado con éxito");
+  };
+
+  const copyMessage = (message: string) => {
+    navigator.clipboard.writeText(message);
+    showToast("Mensaje copiado al portapapeles");
+  };
+
+  const createInquiry = (text: string) => {
+    const words = normalizeText(text).split(/[^a-z0-9]+/).filter((word) => word.length > 3);
+    const uniqueHints = state.products
+      .filter((product) => {
+        const productWords = normalizeText(product.name).split(/[^a-z0-9]+/);
+        return words.some((word) => {
+          const stem = word.replace(/(?:es|s)$/u, "");
+          return productWords.some((productWord) => productWord.startsWith(stem) || stem.startsWith(productWord));
+        });
+      })
+      .map((product) => product.name)
+      .slice(0, 4);
+
+    const newInquiry: Inquiry = {
+      id: `i-${Date.now()}`,
+      prospectName: "Nuevo Prospecto",
+      channel: "WhatsApp",
+      text,
+      productHints: uniqueHints,
+      status: "nueva",
+      owner: "Node3",
+      nextAction: "Responder consulta",
+      followUpDate: getLocalDateKey(),
+      createdAt: getLocalDateKey(),
+    };
+
+    setState((prev) => ({
+      ...prev,
+      inquiries: [newInquiry, ...prev.inquiries],
+    }));
+    showToast("Nueva consulta registrada");
+  };
+
+  const updateInquiry = (id: string, changes: Partial<Inquiry>) => {
+    setState((prev) => ({
+      ...prev,
+      inquiries: prev.inquiries.map((inquiry) =>
+        inquiry.id === id ? { ...inquiry, ...changes } : inquiry,
       ),
     }));
-    setToast(status === "preparacion" ? "Pedido enviado a preparación." : "Pedido marcado como preparado.");
   };
 
-  const openDocument = (order: Order, type: OrderDocumentType) => {
-    setDocumentRequest({ order, type });
+  const simulateExcelImport = () => {
+    const newProducts: Product[] = [
+      {
+        id: `p-${Date.now()}-1`,
+        sku: "BEB-080",
+        name: "Energizante lata pack x12",
+        category: "Bebidas",
+        unit: "pack",
+        costPrice: 11900,
+        stock: 36,
+        minStock: 15,
+        prices: { minorista: 18000, mayorista: 15000, especial: 14400 },
+        active: true,
+      },
+      {
+        id: `p-${Date.now()}-2`,
+        sku: "GOL-090",
+        name: "Chocolate tableta caja x20",
+        category: "Golosinas",
+        unit: "caja",
+        costPrice: 16900,
+        stock: 25,
+        minStock: 10,
+        prices: { minorista: 26000, mayorista: 21500, especial: 20000 },
+        active: true,
+      },
+    ];
+
+    setState((prev) => ({
+      ...prev,
+      products: [...newProducts, ...prev.products],
+    }));
+    showToast("2 productos importados desde Excel");
   };
 
-  const addCustomer = (data: Pick<Customer, "businessName" | "contactName" | "address" | "city">) => {
+  /* ── Customer CRUD ── */
+
+  const addCustomer = (data: Omit<Customer, "id">) => {
     const id = `c-${Date.now()}`;
-    const customer: Customer = {
-      id,
-      code: String(state.customers.length + 181).padStart(3, "0") + " / 0",
-      businessName: data.businessName.toUpperCase(),
-      contactName: data.contactName,
-      phone: "",
-      address: data.address,
-      city: data.city.toUpperCase(),
-      postalCode: "2300",
-      province: "SANTA FE",
-      zone: data.city,
-      customerType: "Comercio",
-      priceList: "mayorista",
-      creditLimit: 0,
-      currentDebt: 0,
-      status: "activo",
-      notes: "Alta rápida desde el pedido.",
-    };
-    setState((current) => ({ ...current, customers: [...current.customers, customer] }));
-    setDraft((current) => ({ ...current, customerId: id }));
-    setToast("Cliente agregado al pedido.");
-    return id;
+    setState((prev) => ({ ...prev, customers: [...prev.customers, { ...data, id }] }));
+    setSelectedCustomerId(id);
+    showToast("Cliente agregado.");
   };
+
+  const updateCustomer = (id: string, changes: Partial<Customer>) => {
+    setState((prev) => ({
+      ...prev,
+      customers: prev.customers.map((c) => (c.id === id ? { ...c, ...changes } : c)),
+    }));
+    showToast("Cliente actualizado.");
+  };
+
+  const deleteCustomer = (id: string) => {
+    if (state.orders.some((order) => order.customerId === id)) {
+      showToast("No se puede eliminar: el cliente tiene pedidos asociados.");
+      return;
+    }
+    setState((prev) => ({ ...prev, customers: prev.customers.filter((c) => c.id !== id) }));
+    if (selectedCustomerId === id) setSelectedCustomerId("");
+    showToast("Cliente eliminado.");
+  };
+
+  /* ── Product CRUD ── */
 
   const addProduct = (data: Omit<Product, "id">) => {
-    setState((current) => ({
-      ...current,
-      products: [...current.products, { ...data, id: `p-${Date.now()}` }],
-    }));
-    setToast("Producto agregado.");
+    const id = `p-${Date.now()}`;
+    setState((prev) => ({ ...prev, products: [...prev.products, { ...data, id }] }));
+    showToast("Producto agregado.");
   };
 
   const updateProduct = (id: string, changes: Partial<Product>) => {
-    setState((current) => ({
-      ...current,
-      products: current.products.map((product) =>
-        product.id === id ? { ...product, ...changes } : product,
-      ),
+    setState((prev) => ({
+      ...prev,
+      products: prev.products.map((p) => (p.id === id ? { ...p, ...changes } : p)),
     }));
-    setToast("Producto actualizado.");
+    showToast("Producto actualizado.");
   };
 
   const deleteProduct = (id: string) => {
     if (state.orders.some((order) => order.lines.some((line) => line.productId === id))) {
-      setToast("No se puede eliminar: el producto ya aparece en un pedido.");
+      showToast("No se puede eliminar: el producto aparece en pedidos existentes.");
       return;
     }
-    setState((current) => ({
-      ...current,
-      products: current.products.filter((product) => product.id !== id),
-    }));
-    setToast("Producto eliminado.");
+    setState((prev) => ({ ...prev, products: prev.products.filter((p) => p.id !== id) }));
+    showToast("Producto eliminado.");
   };
 
-  const resetDemo = () => {
-    setState(initialDemoState);
-    setDraft(emptyDraft);
-    setView("inicio");
-    setToast("Datos de demostración restaurados.");
+  const startOrderForCustomer = (customerId: string) => {
+    setDraft({ ...emptyDraft, customerId });
+    setView("pedidos");
   };
-
-  const activeTitle = pageTitles[view] ?? pageTitles.inicio!;
 
   return (
-    <div className="app-shell">
+    <div className="app">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <span className="brand-mark">EB</span>
+          <span className="brand-icon">N3</span>
           <div>
-            <strong>El Bayo</strong>
-            <span>Distribuciones</span>
+            <div className="brand-name">Node3</div>
+            <div className="brand-sub">Gestión mayorista</div>
           </div>
         </div>
-
-        <nav className="sidebar-nav" aria-label="Navegación principal">
+        <div className="sidebar-section-label">Tu negocio</div>
+        <nav className="sidebar-nav">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const count = item.key === "preparacion" ? pendingPreparation : 0;
+            const badge = navBadges[item.key];
             return (
               <button
                 key={item.key}
                 className={`nav-item ${view === item.key ? "active" : ""}`}
                 onClick={() => setView(item.key)}
               >
-                <Icon size={19} aria-hidden="true" />
-                <span>{item.label}</span>
-                {count > 0 && <span className="nav-count">{count}</span>}
+                <Icon size={18} />
+                <span className="nav-label">{item.label}</span>
+                {badge ? <span className="nav-count">{badge}</span> : null}
               </button>
             );
           })}
         </nav>
-
         <div className="business-card">
-          <Building2 size={18} aria-hidden="true" />
-          <div>
-            <strong>Rafaela, Santa Fe</strong>
-            <span>Datos de demostración</span>
+          <div className="business-avatar">
+            <Building2 size={17} />
           </div>
+          <div className="business-copy">
+            <strong>Distribuidora Central</strong>
+            <span><i /> Datos de demostración</span>
+          </div>
+          <ChevronRight size={15} />
         </div>
-        <p className="sidebar-note">Prototipo operativo · La información fiscal está pendiente de validación.</p>
+        <div className="sidebar-footer">
+          Node3 Distribución · Prototipo comercial
+        </div>
       </aside>
 
-      <div className="workspace">
-        <header className="topbar">
-          <div className="topbar-copy">
-            <p className="topbar-date">{todayLabel}</p>
-            <h1>{activeTitle.title}</h1>
-            <p>{activeTitle.sub}</p>
+      <div className="main-area">
+        <div className="mobile-nav">
+          <nav className="sidebar-nav">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const badge = navBadges[item.key];
+              return (
+                <button
+                  key={item.key}
+                  className={`nav-item ${view === item.key ? "active" : ""}`}
+                  onClick={() => setView(item.key)}
+                >
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                  {badge ? <span className="nav-count">{badge}</span> : null}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        <header className="header">
+          <div className="header-copy">
+            <div className="header-kicker">{todayLabel}</div>
+            <div className="header-title">{pageTitles[view].title}</div>
+            <div className="header-sub">{pageTitles[view].sub}</div>
           </div>
-          <div className="topbar-actions">
-            {view !== "nuevo-pedido" && (
-              <button className="btn btn-primary" onClick={openNewOrder}>
-                <Plus size={17} aria-hidden="true" /> Nuevo pedido
-              </button>
-            )}
+          <div className="header-actions">
+            <button className="btn btn-secondary" onClick={() => setView("consultas")}>
+              <MessageCircle size={16} /> Nueva consulta
+            </button>
             <button
-              className="btn btn-icon btn-secondary"
-              onClick={resetDemo}
-              title="Restaurar datos de demostración"
-              aria-label="Restaurar datos de demostración"
+              className="btn btn-primary"
+              onClick={() => {
+                setDraft({ ...emptyDraft, customerId: state.customers[0]?.id ?? "" });
+                setView("pedidos");
+              }}
             >
+              <Plus size={16} /> Nuevo pedido
+            </button>
+            <button className="btn btn-ghost btn-icon" onClick={resetDemo} title="Reiniciar datos de demostración" aria-label="Reiniciar datos de demostración">
               <RefreshCcw size={16} />
             </button>
           </div>
         </header>
 
-        <main className="page-content">
+        <section className="page-content">
           {view === "inicio" && (
-            <DashboardView state={state} onNavigate={setView} onNewOrder={openNewOrder} onOpenDocument={openDocument} />
+            <DashboardView
+              state={state}
+              onNavigate={setView}
+              onConvertInquiry={convertInquiry}
+              onUpdateStatus={updateOrderStatus}
+            />
           )}
           {view === "pedidos" && (
-            <OrdersView state={state} onOpenDocument={openDocument} onNewOrder={openNewOrder} />
-          )}
-          {view === "preparacion" && (
-            <PreparationView state={state} onUpdateStatus={updateOrderStatus} onOpenDocument={openDocument} />
-          )}
-          {view === "nuevo-pedido" && (
-            <NewOrderView
+            <OrdersView
               state={state}
               draft={draft}
               onDraftChange={setDraft}
               onAddProduct={addProductToDraft}
-              onUpdateLine={updateDraftLine}
+              onUpdateQuantity={updateDraftQuantity}
               onRemoveLine={removeDraftLine}
-              onSubmit={submitDraftOrder}
-              onCancel={() => setView("pedidos")}
+              onSubmitOrder={submitDraftOrder}
+              onUpdateStatus={updateOrderStatus}
+              onCopyMessage={copyMessage}
+            />
+          )}
+          {view === "clientes" && (
+            <CustomersView
+              state={state}
+              selectedId={selectedCustomerId}
+              onSelect={setSelectedCustomerId}
+              onStartOrder={startOrderForCustomer}
+              onCopyMessage={copyMessage}
               onAddCustomer={addCustomer}
+              onUpdateCustomer={updateCustomer}
+              onDeleteCustomer={deleteCustomer}
             />
           )}
           {view === "productos" && (
             <ProductsView
               products={state.products}
+              onImport={simulateExcelImport}
               onAddProduct={addProduct}
               onUpdateProduct={updateProduct}
               onDeleteProduct={deleteProduct}
             />
           )}
-        </main>
+          {view === "cobrar" && (
+            <CollectionsView
+              state={state}
+              onRegisterPayment={registerPayment}
+              onCopyMessage={copyMessage}
+            />
+          )}
+          {view === "consultas" && (
+            <InquiriesView
+              state={state}
+              onConvertInquiry={convertInquiry}
+              onCreateInquiry={createInquiry}
+              onUpdateInquiry={updateInquiry}
+              onCopyMessage={copyMessage}
+            />
+          )}
+        </section>
       </div>
 
-      <nav className="mobile-nav" aria-label="Navegación móvil">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.key}
-              className={`nav-item ${view === item.key ? "active" : ""}`}
-              onClick={() => setView(item.key)}
-            >
-              <Icon size={19} />
-              <span>{item.label.replace(" y stock", "")}</span>
-            </button>
-          );
-        })}
-      </nav>
-
-      {documentRequest && (
-        <OrderDocumentModal
-          type={documentRequest.type}
-          order={documentRequest.order}
-          customer={state.customers.find((customer) => customer.id === documentRequest.order.customerId)}
-          products={state.products}
-          onClose={() => setDocumentRequest(null)}
-        />
-      )}
-
       {toast && (
-        <div className="toast" role="status">
-          <Check size={17} aria-hidden="true" /> {toast}
+        <div className="toast">
+          <Check size={16} />
+          {toast}
         </div>
       )}
     </div>

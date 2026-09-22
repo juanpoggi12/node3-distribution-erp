@@ -1,7 +1,7 @@
 {
   "name": "node3-distribucion-prototipo",
   "version": "1.0.0",
-  "description": "Prototipo operativo de El Bayo Distribuciones: pedidos, stock y órdenes de preparación.",
+  "description": "Prototipo comercial de Node3 para distribuidoras: pedidos, consultas, cobranzas y WhatsApp.",
   "private": true,
   "scripts": {
     "dev": "next dev",

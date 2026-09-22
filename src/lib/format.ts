@@ -2,15 +2,7 @@ export function formatCurrency(value: number): string {
   return new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency: "ARS",
-    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-
-export function formatNumber(value: number, minimumFractionDigits = 0): string {
-  return new Intl.NumberFormat("es-AR", {
-    minimumFractionDigits,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 0,
   }).format(value);
 }
 

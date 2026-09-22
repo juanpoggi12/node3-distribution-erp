@@ -1,63 +1,53 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Boxes, Edit3, Plus, Search, Trash2, X } from "lucide-react";
+import { useState } from "react";
+import { FileSpreadsheet, Boxes, Plus, Edit, Trash2 } from "lucide-react";
 import type { Product } from "@/lib/types";
-import { formatCurrency, formatNumber, normalizeText } from "@/lib/format";
-import { EmptyState } from "./ui";
+import { formatCurrency, normalizeText } from "@/lib/format";
+import { EmptyState, StatusBadge } from "./ui";
 
 type ProductFormData = Omit<Product, "id">;
 
-const blankProduct: ProductFormData = {
+const initialFormState: ProductFormData = {
   sku: "",
   name: "",
-  category: "Otros",
-  unit: "un.",
+  category: "Otro",
+  unit: "unidad",
   costPrice: 0,
-  stock: 100,
-  minStock: 20,
+  stock: 0,
+  minStock: 0,
   prices: { minorista: 0, mayorista: 0, especial: 0 },
   active: true,
-  allowsDecimals: false,
 };
 
 export function ProductsView({
   products,
+  onImport,
   onAddProduct,
   onUpdateProduct,
   onDeleteProduct,
 }: {
   products: Product[];
+  onImport: () => void;
   onAddProduct: (data: Omit<Product, "id">) => void;
   onUpdateProduct: (id: string, changes: Partial<Product>) => void;
   onDeleteProduct: (id: string) => void;
 }) {
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("");
-  const [formOpen, setFormOpen] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<ProductFormData>(blankProduct);
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [formData, setFormData] = useState<ProductFormData>(initialFormState);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const categories = useMemo(
-    () => Array.from(new Set(products.map((product) => product.category))).sort(),
-    [products],
-  );
-  const filtered = products.filter((product) => {
-    if (category && product.category !== category) return false;
-    if (!search.trim()) return true;
-    return normalizeText(`${product.sku} ${product.name}`).includes(normalizeText(search));
-  });
-
-  const openNew = () => {
+  const handleOpenNew = () => {
+    setFormData(initialFormState);
     setEditingId(null);
-    setForm(blankProduct);
-    setFormOpen(true);
+    setShowForm(true);
   };
 
-  const openEdit = (product: Product) => {
-    setEditingId(product.id);
-    setForm({
+  const handleOpenEdit = (product: Product) => {
+    setFormData({
       sku: product.sku,
       name: product.name,
       category: product.category,
@@ -67,100 +57,288 @@ export function ProductsView({
       minStock: product.minStock,
       prices: { ...product.prices },
       active: product.active,
-      allowsDecimals: product.allowsDecimals ?? false,
     });
-    setFormOpen(true);
+    setEditingId(product.id);
+    setShowForm(true);
   };
 
-  const save = () => {
-    if (!form.sku.trim() || !form.name.trim()) return;
-    if (editingId) onUpdateProduct(editingId, form);
-    else onAddProduct(form);
-    setFormOpen(false);
+  const handleClose = () => {
+    setShowForm(false);
     setEditingId(null);
   };
 
+  const handleSave = () => {
+    if (editingId) {
+      onUpdateProduct(editingId, formData);
+    } else {
+      onAddProduct(formData);
+    }
+    handleClose();
+  };
+
+  const categories = Array.from(new Set(products.map(p => p.category)));
+  const filteredProducts = products.filter(p => {
+    if (categoryFilter && categoryFilter !== "Todas" && p.category !== categoryFilter) return false;
+    if (searchQuery) {
+      const q = normalizeText(searchQuery);
+      if (!normalizeText(p.name).includes(q) && !normalizeText(p.sku).includes(q)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
   return (
-    <section className="page-stack">
-      <div className="section-heading">
-        <div>
-          <h2>Catálogo y existencias</h2>
-          <p>Los precios iniciales fueron tomados de la nota entregada por el cliente.</p>
+    <div className="content">
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-head">
+          <h2 className="card-title">Actualización masiva de catálogo</h2>
         </div>
-        <button className="btn btn-primary" onClick={openNew}><Plus size={17} /> Nuevo producto</button>
+        <div className="split">
+          <div className="msg-box" style={{ flex: 1, marginRight: 16 }}>
+            Simulá una actualización desde Excel para mostrar cómo se incorporan productos y precios. El importador de archivos reales queda para la versión piloto.
+          </div>
+          <button className="btn btn-primary" onClick={onImport}>
+            <FileSpreadsheet size={16} />
+            Simular importación
+          </button>
+        </div>
       </div>
 
-      <div className="product-context">
-        <Boxes size={20} />
-        <div><strong>{products.length} productos cargados</strong><span>Las existencias son ficticias y holgadas para probar el pedido completo.</span></div>
-      </div>
+      {showForm && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-head">
+            <h2 className="card-title">{editingId ? "Editar producto" : "Nuevo producto"}</h2>
+          </div>
+          <div className="form-group" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Nombre</label>
+                <input 
+                  className="input" 
+                  value={formData.name} 
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+                />
+              </div>
+              <div className="form-group">
+                <label>SKU</label>
+                <input 
+                  className="input" 
+                  value={formData.sku} 
+                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })} 
+                />
+              </div>
+            </div>
+            
+            <div className="form-row">
+              <div className="form-group">
+                <label>Categoría</label>
+                <select 
+                  className="select" 
+                  value={formData.category} 
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                >
+                  <option>Bebidas</option>
+                  <option>Golosinas</option>
+                  <option>Snacks</option>
+                  <option>Galletitas</option>
+                  <option>Helados</option>
+                  <option>Otro</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Unidad</label>
+                <select 
+                  className="select" 
+                  value={formData.unit} 
+                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                >
+                  <option>pack</option>
+                  <option>caja</option>
+                  <option>bolsa</option>
+                  <option>unidad</option>
+                </select>
+              </div>
+            </div>
 
-      {formOpen && (
-        <div className="editor-panel">
-          <div className="panel-heading">
-            <div><h3>{editingId ? "Editar producto" : "Nuevo producto"}</h3><p>Define cómo se carga y se muestra dentro del pedido.</p></div>
-            <button className="icon-button" onClick={() => setFormOpen(false)} aria-label="Cerrar formulario"><X size={18} /></button>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Stock</label>
+                <input 
+                  type="number"
+                  className="input" 
+                  value={formData.stock} 
+                  onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })} 
+                />
+              </div>
+              <div className="form-group">
+                <label>Stock mínimo</label>
+                <input 
+                  type="number"
+                  className="input" 
+                  value={formData.minStock} 
+                  onChange={(e) => setFormData({ ...formData, minStock: Number(e.target.value) })} 
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Costo de reposición</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="input"
+                  value={formData.costPrice}
+                  onChange={(e) => setFormData({ ...formData, costPrice: Math.max(0, Number(e.target.value)) })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Precio minorista</label>
+                <input 
+                  type="number"
+                  className="input" 
+                  value={formData.prices.minorista} 
+                  onChange={(e) => setFormData({ ...formData, prices: { ...formData.prices, minorista: Number(e.target.value) } })} 
+                />
+              </div>
+              <div className="form-group">
+                <label>Precio mayorista</label>
+                <input 
+                  type="number"
+                  className="input" 
+                  value={formData.prices.mayorista} 
+                  onChange={(e) => setFormData({ ...formData, prices: { ...formData.prices, mayorista: Number(e.target.value) } })} 
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Precio especial</label>
+                <input 
+                  type="number"
+                  className="input" 
+                  value={formData.prices.especial} 
+                  onChange={(e) => setFormData({ ...formData, prices: { ...formData.prices, especial: Number(e.target.value) } })} 
+                />
+              </div>
+              <div className="form-group">
+                <label>Estado</label>
+                <select 
+                  className="select" 
+                  value={formData.active ? "Activo" : "Inactivo"} 
+                  onChange={(e) => setFormData({ ...formData, active: e.target.value === "Activo" })}
+                >
+                  <option>Activo</option>
+                  <option>Inactivo</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div className="product-form-grid">
-            <label className="field-group compact-field"><span>Código</span><input value={form.sku} onChange={(event) => setForm({ ...form, sku: event.target.value })} /></label>
-            <label className="field-group product-name-field"><span>Descripción</span><input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
-            <label className="field-group"><span>Categoría</span><input value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} /></label>
-            <label className="field-group compact-field"><span>Unidad</span><select value={form.unit} onChange={(event) => setForm({ ...form, unit: event.target.value, allowsDecimals: event.target.value === "kg" })}><option value="un.">un.</option><option value="kg">kg</option><option value="caja">caja</option><option value="bulto">bulto</option></select></label>
-            <label className="field-group"><span>Precio mayorista</span><input type="number" min="0" step="0.01" value={form.prices.mayorista} onChange={(event) => { const value = Number(event.target.value); setForm({ ...form, prices: { minorista: value, mayorista: value, especial: value } }); }} /></label>
-            <label className="field-group"><span>Stock actual</span><input type="number" min="0" step={form.allowsDecimals ? "0.01" : "1"} value={form.stock} onChange={(event) => setForm({ ...form, stock: Number(event.target.value) })} /></label>
-            <label className="field-group"><span>Stock mínimo</span><input type="number" min="0" step={form.allowsDecimals ? "0.01" : "1"} value={form.minStock} onChange={(event) => setForm({ ...form, minStock: Number(event.target.value) })} /></label>
-            <label className="check-field"><input type="checkbox" checked={form.allowsDecimals ?? false} onChange={(event) => setForm({ ...form, allowsDecimals: event.target.checked })} /><span>Permitir cantidades decimales</span></label>
-          </div>
-          <div className="editor-actions">
-            <button className="btn btn-secondary" onClick={() => setFormOpen(false)}>Cancelar</button>
-            <button className="btn btn-primary" disabled={!form.sku.trim() || !form.name.trim()} onClick={save}>Guardar producto</button>
+          <div className="actions" style={{ marginTop: 16 }}>
+            <button className="btn btn-primary" onClick={handleSave}>Guardar</button>
+            <button className="btn btn-ghost" onClick={handleClose}>Cancelar</button>
           </div>
         </div>
       )}
 
-      <div className="filter-bar">
-        <label className="search-field">
-          <Search size={17} />
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar código o descripción" />
-        </label>
-        <select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="Filtrar por categoría">
-          <option value="">Todas las categorías</option>
-          {categories.map((item) => <option key={item}>{item}</option>)}
-        </select>
-        <span className="filter-result">{filtered.length} resultados</span>
-      </div>
-
-      <div className="data-panel">
-        {filtered.length === 0 ? (
-          <EmptyState icon={Boxes} title="No hay productos para mostrar" description="Cambia la búsqueda o agrega un producto." />
+      <div className="card">
+        <div className="card-head">
+          <div className="split" style={{ width: "100%" }}>
+            <input
+              className="input"
+              placeholder="Buscar producto o SKU..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ flex: 1, maxWidth: 300 }}
+            />
+            <select
+              className="select"
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              style={{ width: 150 }}
+            >
+              <option value="">Todas</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <button className="btn btn-primary btn-sm" onClick={handleOpenNew}>
+              <Plus size={16} />
+              Nuevo producto
+            </button>
+          </div>
+        </div>
+        {products.length === 0 ? (
+          <EmptyState icon={Boxes} title="No hay productos" />
         ) : (
-          <div className="table-scroll">
-            <table className="data-table products-table">
-              <thead><tr><th>Código</th><th>Descripción</th><th>Categoría</th><th>Venta</th><th>Stock</th><th>Precio</th><th className="align-right">Acciones</th></tr></thead>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Categoría</th>
+                  <th>Stock</th>
+                  <th>Costo</th>
+                  <th>Minorista</th>
+                  <th>Mayorista</th>
+                  <th>Margen mayorista</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
               <tbody>
-                {filtered.map((product) => (
-                  <tr key={product.id}>
-                    <td><span className="sku-chip">{product.sku}</span></td>
-                    <td><strong>{product.name}</strong></td>
-                    <td>{product.category}</td>
-                    <td>{product.allowsDecimals ? "Por kg · admite decimales" : `Por ${product.unit}`}</td>
+                {filteredProducts.map((p) => (
+                  <tr key={p.id}>
                     <td>
-                      <strong className={product.stock <= product.minStock ? "stock-low" : "stock-ok"}>{formatNumber(product.stock)} {product.unit}</strong>
-                      <span className="cell-note">Mínimo {formatNumber(product.minStock)}</span>
+                      <div className="text-bold">{p.name}</div>
+                      <div className="text-muted" style={{ fontSize: 11 }}>
+                        {p.sku} • {p.unit}
+                      </div>
                     </td>
-                    <td className="tabular"><strong>{formatCurrency(product.prices.mayorista)}</strong></td>
+                    <td>{p.category}</td>
                     <td>
-                      <div className="row-actions align-right">
-                        {confirmDelete === product.id ? (
+                      <StatusBadge 
+                        status={p.stock > p.minStock ? "activo" : "pausado"} 
+                        label={`${p.stock}`} 
+                      />
+                    </td>
+                    <td>{formatCurrency(p.costPrice)}</td>
+                    <td>{formatCurrency(p.prices.minorista)}</td>
+                    <td>{formatCurrency(p.prices.mayorista)}</td>
+                    <td>
+                      <StatusBadge
+                        status={p.prices.mayorista > p.costPrice ? "activo" : "moroso"}
+                        label={`${p.costPrice > 0 ? Math.round(((p.prices.mayorista - p.costPrice) / p.prices.mayorista) * 100) : 0}%`}
+                      />
+                    </td>
+                    <td>
+                      <div className="actions">
+                        {confirmDeleteId === p.id ? (
                           <>
-                            <span className="delete-question">¿Eliminar?</span>
-                            <button className="btn btn-danger btn-sm" onClick={() => { onDeleteProduct(product.id); setConfirmDelete(null); }}>Sí</button>
-                            <button className="btn btn-secondary btn-sm" onClick={() => setConfirmDelete(null)}>No</button>
+                            <span style={{ fontSize: 13, marginRight: 8 }}>¿Eliminar?</span>
+                            <button className="btn btn-danger btn-sm" onClick={() => {
+                              onDeleteProduct(p.id);
+                              setConfirmDeleteId(null);
+                            }}>
+                              Sí
+                            </button>
+                            <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDeleteId(null)}>
+                              No
+                            </button>
                           </>
                         ) : (
                           <>
-                            <button className="icon-button" onClick={() => openEdit(product)} aria-label={`Editar ${product.name}`}><Edit3 size={16} /></button>
-                            <button className="icon-button danger" onClick={() => setConfirmDelete(product.id)} aria-label={`Eliminar ${product.name}`}><Trash2 size={16} /></button>
+                            <button className="btn btn-secondary btn-sm" onClick={() => handleOpenEdit(p)}>
+                              <Edit size={14} />
+                              Editar
+                            </button>
+                            <button className="btn btn-danger btn-sm" onClick={() => setConfirmDeleteId(p.id)}>
+                              <Trash2 size={14} />
+                              Eliminar
+                            </button>
                           </>
                         )}
                       </div>
@@ -172,6 +350,6 @@ export function ProductsView({
           </div>
         )}
       </div>
-    </section>
+    </div>
   );
 }

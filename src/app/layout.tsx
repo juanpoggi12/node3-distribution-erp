@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "El Bayo Distribuciones — Pedidos y preparación",
+  title: "Node3 Distribución — Panel de pedidos y cobranzas",
   description:
-    "Prototipo operativo para registrar pedidos, controlar stock y generar órdenes de preparación.",
+    "Sistema operativo para distribuidoras: pedidos, clientes, precios, cobranzas y WhatsApp.",
 };
 
 export default function RootLayout({
@@ -22,7 +22,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
       </head>

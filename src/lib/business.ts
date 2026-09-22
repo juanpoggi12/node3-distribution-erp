@@ -86,7 +86,7 @@ export function isValidOrderTransition(from: OrderStatus, to: OrderStatus): bool
     borrador: ["confirmado", "cancelado"],
     confirmado: ["preparacion", "cancelado"],
     preparacion: ["preparado", "cancelado"],
-    preparado: ["preparacion", "cancelado"],
+    preparado: ["reparto", "cancelado"],
     reparto: ["entregado_sin_cobrar", "pagado"],
     entregado: ["entregado_sin_cobrar", "pagado"],
     entregado_sin_cobrar: ["pagado"],
@@ -103,11 +103,8 @@ export function findProduct(products: Product[], id: string): Product | undefine
 }
 
 export function createOrderNumber(orders: Order[]): string {
-  const highest = orders.reduce((max, order) => {
-    const numeric = Number.parseInt(order.number.replace(/\D/g, ""), 10);
-    return Number.isFinite(numeric) ? Math.max(max, numeric) : max;
-  }, 0);
-  return String(highest + 1).padStart(6, "0");
+  const next = orders.length + 1;
+  return String(next).padStart(4, "0");
 }
 
 export function buildOrderFromDraft(
@@ -126,14 +123,12 @@ export function buildOrderFromDraft(
     customerId: draft.customerId,
     inquiryId: draft.inquiryId,
     status: "confirmado",
-    lines: draft.lines.map((line) => ({ ...line, packages: line.packages ?? 1 })),
+    lines: draft.lines,
     discount: 0,
     createdAt: getLocalDateKey(now),
     dueDate: getLocalDateKey(due),
     deliveryZone: customer?.zone ?? "Sin zona",
-    owner: draft.seller || "1",
-    seller: draft.seller || "1",
-    saleCondition: draft.saleCondition || "CUENTA CORRIENTE",
+    owner: "Node3",
     notes: draft.notes,
     paidAmount: 0,
   };
