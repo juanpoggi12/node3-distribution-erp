@@ -17,6 +17,7 @@ Prototipo web operativo para registrar pedidos de una distribuidora, preparar la
 3. Descontar stock al confirmar, como comportamiento provisorio a validar.
 4. Imprimir o guardar como PDF una nota de pedido y una orden de preparación A4 vertical.
 5. Consultar pedidos activos y existencias sin atravesar módulos ajenos al flujo.
+6. Identificar la zona y el camión o recorrido de cada pedido; contar pedidos y bultos pendientes por destino hasta marcarlos como cargados.
 
 ## Datos y reglas confirmadas
 
@@ -24,8 +25,9 @@ Prototipo web operativo para registrar pedidos de una distribuidora, preparar la
 - Los productos vendidos por decimal se expresan en kilogramos.
 - La fuente de los productos y precios iniciales es la imagen del remito aportada por el cliente.
 - Se usarán existencias de demostración holgadas para probar el pedido completo.
-- Estados mínimos visibles: confirmado, en preparación y preparado.
+- Estados mínimos visibles: confirmado, en preparación, preparado y cargado.
 - La documentación de esta etapa es de uso interno.
+- La zona se registra en cada pedido y puede corregirse luego; el camión o recorrido se asigna antes de marcarlo como cargado.
 
 ## Límites de esta primera entrega
 
@@ -46,4 +48,3 @@ Prototipo web operativo para registrar pedidos de una distribuidora, preparar la
 
 - Remito aportado: `C:\Users\juani\AppData\Local\Temp\codex-clipboard-bbf5d20c-bfef-4755-afab-8032259a0060.jpg`.
 - Repositorio base: `https://github.com/juanpoggi12/node3-distribution-erp`.
-

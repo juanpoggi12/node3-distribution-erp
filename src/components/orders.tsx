@@ -8,10 +8,12 @@ import {
   ClipboardCheck,
   FileText,
   PackageCheck,
+  Pencil,
   Plus,
   Printer,
   Search,
   Trash2,
+  Truck,
   UserPlus,
   X,
 } from "lucide-react";
@@ -24,27 +26,97 @@ import type {
   OrderStatus,
   Product,
 } from "@/lib/types";
-import { findCustomer, findProduct, getOrderTotal } from "@/lib/business";
+import { findCustomer, findProduct, getDispatchGroups, getOrderPackages, getOrderTotal } from "@/lib/business";
 import { formatCurrency, formatDate, formatNumber, normalizeText } from "@/lib/format";
 import { EmptyState, StatusBadge, orderStatusLabel } from "./ui";
 
 type DocumentRequest = (order: Order, type: OrderDocumentType) => void;
+type DispatchAssignment = (orderId: string, zone: string, truck: string) => void;
 
 function lineCountLabel(order: Order) {
   return `${order.lines.length} ${order.lines.length === 1 ? "producto" : "productos"}`;
+}
+
+function dispatchSuggestions(state: DemoState) {
+  return {
+    zones: [...new Set([...state.customers.map((customer) => customer.zone), ...state.orders.map((order) => order.deliveryZone)].filter((zone) => zone && zone !== "Sin zona"))],
+    trucks: [...new Set(state.orders.map((order) => order.dispatchTruck?.trim()).filter((truck): truck is string => Boolean(truck)))],
+  };
+}
+
+function DispatchAssignmentEditor({
+  order,
+  zones,
+  trucks,
+  onSave,
+}: {
+  order: Order;
+  zones: string[];
+  trucks: string[];
+  onSave: DispatchAssignment;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [zone, setZone] = useState(order.deliveryZone || "");
+  const [truck, setTruck] = useState(order.dispatchTruck || "");
+
+  const startEditing = () => {
+    setZone(order.deliveryZone === "Sin zona" ? "" : order.deliveryZone || "");
+    setTruck(order.dispatchTruck || "");
+    setEditing(true);
+  };
+
+  return (
+    <div className="dispatch-assignment">
+      <strong>{order.deliveryZone?.trim() || "Sin zona"}</strong>
+      <span>{order.dispatchTruck?.trim() || "Sin camión asignado"}</span>
+      {!editing ? (
+        <button className="text-button dispatch-edit-trigger" onClick={startEditing} aria-label={`Editar destino del pedido ${order.number}`}>
+          <Pencil size={13} /> Editar destino
+        </button>
+      ) : (
+        <form
+          className="dispatch-assignment-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!zone.trim()) return;
+            onSave(order.id, zone, truck);
+            setEditing(false);
+          }}
+        >
+          <label className="field-group">
+            <span>Zona de envío</span>
+            <input value={zone} onChange={(event) => setZone(event.target.value)} list={`zones-${order.id}`} placeholder="Ej. Rafaela centro" required />
+            <datalist id={`zones-${order.id}`}>{zones.map((item) => <option key={item} value={item} />)}</datalist>
+          </label>
+          <label className="field-group">
+            <span>Camión o recorrido</span>
+            <input value={truck} onChange={(event) => setTruck(event.target.value)} list={`trucks-${order.id}`} placeholder="Ej. Camión 1" />
+            <datalist id={`trucks-${order.id}`}>{trucks.map((item) => <option key={item} value={item} />)}</datalist>
+          </label>
+          <div className="row-actions">
+            <button className="btn btn-primary btn-sm" disabled={!zone.trim()} type="submit">Guardar</button>
+            <button className="btn btn-secondary btn-sm" type="button" onClick={() => setEditing(false)}>Cancelar</button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
 }
 
 export function OrdersView({
   state,
   onOpenDocument,
   onNewOrder,
+  onAssignDispatch,
 }: {
   state: DemoState;
   onOpenDocument: DocumentRequest;
   onNewOrder: () => void;
+  onAssignDispatch: DispatchAssignment;
 }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const suggestions = dispatchSuggestions(state);
 
   const orders = useMemo(
     () =>
@@ -55,7 +127,8 @@ export function OrdersView({
         const term = normalizeText(search);
         return (
           order.number.includes(search.trim()) ||
-          normalizeText(customer?.businessName ?? "").includes(term)
+          normalizeText(customer?.businessName ?? "").includes(term) ||
+          normalizeText(`${order.deliveryZone ?? ""} ${order.dispatchTruck ?? ""}`).includes(term)
         );
       }),
     [search, state.customers, state.orders, status],
@@ -79,7 +152,7 @@ export function OrdersView({
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar por cliente o número"
+            placeholder="Buscar cliente, número o destino"
             aria-label="Buscar pedidos"
           />
         </label>
@@ -88,6 +161,7 @@ export function OrdersView({
           <option value="confirmado">Confirmado</option>
           <option value="preparacion">En preparación</option>
           <option value="preparado">Preparado</option>
+          <option value="cargado">Cargado</option>
         </select>
         <span className="filter-result">{orders.length} {orders.length === 1 ? "pedido" : "pedidos"}</span>
       </div>
@@ -102,6 +176,7 @@ export function OrdersView({
                 <tr>
                   <th>Pedido</th>
                   <th>Cliente</th>
+                  <th>Destino</th>
                   <th>Fecha</th>
                   <th>Detalle</th>
                   <th>Total</th>
@@ -119,6 +194,7 @@ export function OrdersView({
                         <strong>{customer?.businessName ?? "Cliente sin identificar"}</strong>
                         <span className="cell-note">{customer?.city ?? "Sin localidad"}</span>
                       </td>
+                      <td><DispatchAssignmentEditor order={order} zones={suggestions.zones} trucks={suggestions.trucks} onSave={onAssignDispatch} /></td>
                       <td>{formatDate(order.createdAt)}</td>
                       <td>{lineCountLabel(order)}</td>
                       <td className="tabular"><strong>{formatCurrency(getOrderTotal(order))}</strong></td>
@@ -179,6 +255,7 @@ export function NewOrderView({
   });
 
   const customer = findCustomer(state.customers, draft.customerId);
+  const suggestions = dispatchSuggestions(state);
   const total = draft.lines.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
   const filteredProducts = state.products.filter((product) => {
     if (!product.active) return false;
@@ -213,7 +290,15 @@ export function NewOrderView({
             <span>Cliente</span>
             <select
               value={draft.customerId}
-              onChange={(event) => onDraftChange({ ...draft, customerId: event.target.value })}
+              onChange={(event) => {
+                const selected = findCustomer(state.customers, event.target.value);
+                onDraftChange({
+                  ...draft,
+                  customerId: event.target.value,
+                  deliveryZone: selected?.zone ?? "",
+                  dispatchTruck: "",
+                });
+              }}
             >
               <option value="">Seleccionar cliente</option>
               {state.customers.map((item) => (
@@ -246,6 +331,34 @@ export function NewOrderView({
             <span>Código {customer.code ?? "—"}</span>
           </div>
         )}
+        <div className="order-dispatch-fields">
+          <div className="dispatch-field-heading">
+            <Truck size={18} aria-hidden="true" />
+            <div><strong>Destino de despacho</strong><span>La zona y el camión aparecerán en la nota y en la orden de preparación.</span></div>
+          </div>
+          <div className="dispatch-field-grid">
+            <label className="field-group">
+              <span>Zona de envío</span>
+              <input
+                value={draft.deliveryZone}
+                onChange={(event) => onDraftChange({ ...draft, deliveryZone: event.target.value })}
+                list="draft-delivery-zones"
+                placeholder="Ej. Rafaela centro"
+              />
+              <datalist id="draft-delivery-zones">{suggestions.zones.map((zone) => <option key={zone} value={zone} />)}</datalist>
+            </label>
+            <label className="field-group">
+              <span>Camión o recorrido <small>(opcional al confirmar)</small></span>
+              <input
+                value={draft.dispatchTruck}
+                onChange={(event) => onDraftChange({ ...draft, dispatchTruck: event.target.value })}
+                list="draft-dispatch-trucks"
+                placeholder="Ej. Camión 1"
+              />
+              <datalist id="draft-dispatch-trucks">{suggestions.trucks.map((truck) => <option key={truck} value={truck} />)}</datalist>
+            </label>
+          </div>
+        </div>
         {showCustomerForm && (
           <div className="inline-form">
             <label className="field-group">
@@ -385,7 +498,7 @@ export function NewOrderView({
               <strong>{formatCurrency(total)}</strong>
               <small>IVA e impuestos: pendientes de validación</small>
             </div>
-            <button className="btn btn-primary btn-lg" disabled={!draft.customerId || draft.lines.length === 0} onClick={onSubmit}>
+            <button className="btn btn-primary btn-lg" disabled={!draft.customerId || !draft.deliveryZone.trim() || draft.lines.length === 0} onClick={onSubmit}>
               <Check size={18} /> Confirmar pedido
             </button>
           </div>
@@ -400,78 +513,111 @@ export function PreparationView({
   state,
   onUpdateStatus,
   onOpenDocument,
+  onAssignDispatch,
 }: {
   state: DemoState;
   onUpdateStatus: (orderId: string, status: OrderStatus) => void;
   onOpenDocument: DocumentRequest;
+  onAssignDispatch: DispatchAssignment;
 }) {
-  const active = state.orders.filter((order) => ["confirmado", "preparacion"].includes(order.status));
-  const ready = state.orders.filter((order) => order.status === "preparado").slice(0, 5);
+  const groups = getDispatchGroups(state.orders);
+  const pendingCount = groups.reduce((total, group) => total + group.orders.length, 0);
+  const loaded = state.orders.filter((order) => order.status === "cargado").slice(0, 5);
+  const suggestions = dispatchSuggestions(state);
 
   return (
     <section className="page-stack">
       <div className="section-heading">
         <div>
-          <h2>Cola de preparación</h2>
-          <p>Primero imprime la orden; luego registra el avance del depósito.</p>
+          <h2>Pedidos por zona</h2>
+          <p>Los pedidos se agrupan por zona hasta que se cargan en el camión o recorrido.</p>
         </div>
-        <span className="work-count">{active.length} {active.length === 1 ? "pendiente" : "pendientes"}</span>
+        <span className="work-count">{pendingCount} por cargar</span>
       </div>
 
-      {active.length === 0 ? (
+      {groups.length === 0 ? (
         <div className="data-panel">
-          <EmptyState icon={PackageCheck} title="No hay pedidos pendientes" description="Los pedidos confirmados aparecerán aquí automáticamente." />
+          <EmptyState icon={PackageCheck} title="No hay pedidos por cargar" description="Los pedidos confirmados aparecerán aquí agrupados por zona." />
         </div>
       ) : (
-        <div className="preparation-list">
-          {active.map((order) => {
-            const customer = findCustomer(state.customers, order.customerId);
-            const isStarted = order.status === "preparacion";
-            return (
-              <article className="preparation-row" key={order.id}>
-                <div className="prep-order-id">
-                  <span>Pedido</span>
-                  <strong>#{order.number}</strong>
+        <div className="dispatch-groups">
+          {groups.map((group) => (
+            <section className="dispatch-group" key={group.zone}>
+              <header className="dispatch-group-header">
+                <div>
+                  <span>Zona de envío</span>
+                  <h3>{group.zone}</h3>
                 </div>
-                <div className="prep-customer">
-                  <strong>{customer?.businessName ?? "Cliente sin identificar"}</strong>
-                  <span>{lineCountLabel(order)} · {formatCurrency(getOrderTotal(order))}</span>
+                <div className="dispatch-group-counts">
+                  <strong>{group.orders.length} {group.orders.length === 1 ? "pedido" : "pedidos"}</strong>
+                  <span>{formatNumber(group.packages)} {group.packages === 1 ? "bulto" : "bultos"}</span>
                 </div>
-                <div className="prep-progress" aria-label={`Estado: ${orderStatusLabel(order.status)}`}>
-                  <span className="done"><Check size={13} /> Confirmado</span>
-                  <i />
-                  <span className={isStarted ? "done" : ""}>{isStarted && <Check size={13} />} En preparación</span>
-                  <i />
-                  <span>Preparado</span>
-                </div>
-                <div className="prep-actions">
-                  <button className="btn btn-secondary" onClick={() => onOpenDocument(order, "preparacion")}>
-                    <Printer size={16} /> Imprimir orden
-                  </button>
-                  {!isStarted ? (
-                    <button className="btn btn-primary" onClick={() => onUpdateStatus(order.id, "preparacion")}>
-                      Iniciar <ArrowRight size={16} />
-                    </button>
-                  ) : (
-                    <button className="btn btn-primary" onClick={() => onUpdateStatus(order.id, "preparado")}>
-                      <PackageCheck size={16} /> Marcar preparado
-                    </button>
-                  )}
-                </div>
-              </article>
-            );
-          })}
+              </header>
+              <div className="dispatch-truck-counts" aria-label={`Camiones de ${group.zone}`}>
+                {group.trucks.map((truck) => (
+                  <span className={truck.name === "Sin camión" ? "unassigned" : ""} key={truck.name}>
+                    <Truck size={14} aria-hidden="true" />
+                    <strong>{truck.name}</strong>
+                    <span>{truck.orders} {truck.orders === 1 ? "pedido" : "pedidos"} · {formatNumber(truck.packages)} {truck.packages === 1 ? "bulto" : "bultos"}</span>
+                  </span>
+                ))}
+              </div>
+              <div className="preparation-list">
+                {group.orders.map((order) => {
+                  const customer = findCustomer(state.customers, order.customerId);
+                  const packages = getOrderPackages(order);
+                  return (
+                    <article className="preparation-row" key={order.id}>
+                      <div className="prep-order-id">
+                        <span>Pedido</span>
+                        <strong>#{order.number}</strong>
+                      </div>
+                      <div className="prep-customer">
+                        <strong>{customer?.businessName ?? "Cliente sin identificar"}</strong>
+                        <span>{lineCountLabel(order)} · {formatNumber(packages)} {packages === 1 ? "bulto" : "bultos"}</span>
+                      </div>
+                      <DispatchAssignmentEditor order={order} zones={suggestions.zones} trucks={suggestions.trucks} onSave={onAssignDispatch} />
+                      <div className="prep-state">
+                        <StatusBadge status={order.status} label={orderStatusLabel(order.status)} />
+                        {order.status === "preparado" && <span>Listo para cargar</span>}
+                      </div>
+                      <div className="prep-actions">
+                        <button className="btn btn-secondary" onClick={() => onOpenDocument(order, "preparacion")}>
+                          <Printer size={16} /> Orden
+                        </button>
+                        {order.status === "confirmado" && (
+                          <button className="btn btn-primary" onClick={() => onUpdateStatus(order.id, "preparacion")}>
+                            Iniciar <ArrowRight size={16} />
+                          </button>
+                        )}
+                        {order.status === "preparacion" && (
+                          <button className="btn btn-primary" onClick={() => onUpdateStatus(order.id, "preparado")}>
+                            <PackageCheck size={16} /> Preparado
+                          </button>
+                        )}
+                        {order.status === "preparado" && (
+                          <button className="btn btn-primary" onClick={() => onUpdateStatus(order.id, "cargado")}>
+                            <Truck size={16} /> Marcar cargado
+                          </button>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       )}
 
-      {ready.length > 0 && (
+      {loaded.length > 0 && (
         <div className="ready-section">
-          <h3>Preparados recientemente</h3>
+          <h3>Cargados recientemente</h3>
           <div className="ready-list">
-            {ready.map((order) => (
+            {loaded.map((order) => (
               <button key={order.id} onClick={() => onOpenDocument(order, "preparacion")}>
-                <PackageCheck size={17} />
-                <span><strong>#{order.number}</strong> · {findCustomer(state.customers, order.customerId)?.businessName}</span>
+                <Truck size={17} />
+                <span><strong>#{order.number}</strong> · {order.deliveryZone} · {order.dispatchTruck}</span>
                 <FileText size={16} />
               </button>
             ))}
@@ -558,6 +704,17 @@ export function OrderDocumentModal({
             <div><dt>Vendedor</dt><dd>{order.seller ?? order.owner}</dd></div>
             <div><dt>Condición</dt><dd>{order.saleCondition ?? "A confirmar"}</dd></div>
           </dl>
+        </section>
+
+        <section className="document-dispatch" aria-label="Destino de despacho">
+          <div>
+            <span>Zona de envío</span>
+            <strong>{order.deliveryZone?.trim() || "SIN ZONA ASIGNADA"}</strong>
+          </div>
+          <div>
+            <span>Camión o recorrido</span>
+            <strong>{order.dispatchTruck?.trim() || "PENDIENTE DE ASIGNACIÓN"}</strong>
+          </div>
         </section>
 
         <table className={`document-table ${isPreparation ? "preparation-document-table" : ""}`}>

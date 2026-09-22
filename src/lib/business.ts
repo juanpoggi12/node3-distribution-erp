@@ -16,6 +16,7 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
   confirmado: "Confirmado",
   preparacion: "En preparacion",
   preparado: "Preparado",
+  cargado: "Cargado",
   reparto: "En reparto",
   entregado: "Entregado",
   entregado_sin_cobrar: "Entregado sin cobrar",
@@ -86,7 +87,7 @@ export function isValidOrderTransition(from: OrderStatus, to: OrderStatus): bool
     borrador: ["confirmado", "cancelado"],
     confirmado: ["preparacion", "cancelado"],
     preparacion: ["preparado", "cancelado"],
-    preparado: ["preparacion", "cancelado"],
+    preparado: ["preparacion", "cargado", "cancelado"],
     reparto: ["entregado_sin_cobrar", "pagado"],
     entregado: ["entregado_sin_cobrar", "pagado"],
     entregado_sin_cobrar: ["pagado"],
@@ -130,13 +131,60 @@ export function buildOrderFromDraft(
     discount: 0,
     createdAt: getLocalDateKey(now),
     dueDate: getLocalDateKey(due),
-    deliveryZone: customer?.zone ?? "Sin zona",
+    deliveryZone: draft.deliveryZone.trim() || customer?.zone?.trim() || "Sin zona",
+    dispatchTruck: draft.dispatchTruck.trim(),
     owner: draft.seller || "1",
     seller: draft.seller || "1",
     saleCondition: draft.saleCondition || "CUENTA CORRIENTE",
     notes: draft.notes,
     paidAmount: 0,
   };
+}
+
+export const dispatchStatuses: OrderStatus[] = ["confirmado", "preparacion", "preparado"];
+
+export function getOrderPackages(order: Order): number {
+  return Math.round(order.lines.reduce((sum, line) => sum + (line.packages ?? 1), 0) * 100) / 100;
+}
+
+export function getDispatchGroups(orders: Order[]) {
+  const groups = new Map<string, {
+    zone: string;
+    orders: Order[];
+    packages: number;
+    unassignedTrucks: number;
+    trucks: Array<{ name: string; orders: number; packages: number }>;
+  }>();
+
+  for (const order of orders) {
+    if (!dispatchStatuses.includes(order.status)) continue;
+    const zone = order.deliveryZone?.trim() || "Sin zona";
+    const key = zone.toLocaleLowerCase("es-AR").replace(/\s+/g, " ");
+    const group = groups.get(key) ?? { zone, orders: [], packages: 0, unassignedTrucks: 0, trucks: [] };
+    const packages = getOrderPackages(order);
+    group.orders.push(order);
+    group.packages += packages;
+    if (!order.dispatchTruck?.trim()) group.unassignedTrucks += 1;
+    const truckName = order.dispatchTruck?.trim() || "Sin camión";
+    const truck = group.trucks.find((item) => item.name.toLocaleLowerCase("es-AR") === truckName.toLocaleLowerCase("es-AR"));
+    if (truck) {
+      truck.orders += 1;
+      truck.packages += packages;
+    } else {
+      group.trucks.push({ name: truckName, orders: 1, packages });
+    }
+    groups.set(key, group);
+  }
+
+  return [...groups.values()]
+    .map((group) => ({
+      ...group,
+      packages: Math.round(group.packages * 100) / 100,
+      trucks: group.trucks.map((truck) => ({ ...truck, packages: Math.round(truck.packages * 100) / 100 })),
+    }))
+    .sort((a, b) =>
+      a.zone === "Sin zona" ? -1 : b.zone === "Sin zona" ? 1 : a.zone.localeCompare(b.zone, "es-AR"),
+    );
 }
 
 export function buildSuggestedLines(

@@ -8,9 +8,10 @@ import {
   PackageCheck,
   Plus,
   Printer,
+  Truck,
 } from "lucide-react";
 import type { DemoState, Order, OrderDocumentType, ViewKey } from "@/lib/types";
-import { findCustomer, getOrderTotal } from "@/lib/business";
+import { findCustomer, getDispatchGroups, getOrderTotal } from "@/lib/business";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { EmptyState, StatusBadge, orderStatusLabel } from "./ui";
 
@@ -29,8 +30,9 @@ export function DashboardView({
     ["confirmado", "preparacion"].includes(order.status),
   );
   const readyOrders = state.orders.filter((order) => order.status === "preparado");
+  const dispatchGroups = getDispatchGroups(state.orders);
   const lowStock = state.products.filter((product) => product.stock <= product.minStock);
-  const nextOrder = activeOrders[0];
+  const nextOrder = activeOrders[0] ?? readyOrders[0];
   const nextCustomer = nextOrder ? findCustomer(state.customers, nextOrder.customerId) : undefined;
 
   return (
@@ -40,6 +42,8 @@ export function DashboardView({
           <h2>
             {activeOrders.length > 0
               ? `${activeOrders.length} ${activeOrders.length === 1 ? "pedido espera" : "pedidos esperan"} preparación`
+              : readyOrders.length > 0
+                ? `${readyOrders.length} ${readyOrders.length === 1 ? "pedido listo" : "pedidos listos"} para cargar`
               : "La preparación está al día"}
           </h2>
           <p>
@@ -91,6 +95,30 @@ export function DashboardView({
         <div className={lowStock.length > 0 ? "has-warning" : ""}><span>Stock bajo</span><strong>{lowStock.length}</strong><small>{lowStock.length ? "Requiere revisión" : "Sin alertas"}</small></div>
       </div>
 
+      <section className="data-panel dispatch-overview">
+        <div className="panel-heading">
+          <div>
+            <h3>Salida por zonas</h3>
+            <p>Pedidos y bultos pendientes de carga, agrupados por destino.</p>
+          </div>
+          <button className="text-button" onClick={() => onNavigate("preparacion")}>Ver despacho <ArrowRight size={15} /></button>
+        </div>
+        {dispatchGroups.length === 0 ? (
+          <EmptyState icon={Truck} title="No hay pedidos por cargar" description="Las zonas aparecerán al confirmar pedidos." />
+        ) : (
+          <div className="dispatch-overview-list">
+            {dispatchGroups.map((group) => (
+              <button key={group.zone} onClick={() => onNavigate("preparacion")}>
+                <span className="dispatch-overview-zone"><Truck size={17} aria-hidden="true" /><strong>{group.zone}</strong></span>
+                <span>{group.unassignedTrucks > 0 ? `${group.unassignedTrucks} sin camión` : "Camiones asignados"}</span>
+                <strong>{group.orders.length} {group.orders.length === 1 ? "pedido" : "pedidos"}</strong>
+                <span>{formatNumber(group.packages)} {group.packages === 1 ? "bulto" : "bultos"}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
       <div className="dashboard-main">
         <section className="data-panel">
           <div className="panel-heading">
@@ -111,7 +139,7 @@ export function DashboardView({
                     <span className="active-order-number">#{order.number}</span>
                     <div>
                       <strong>{customer?.businessName ?? "Cliente sin identificar"}</strong>
-                      <small>{order.lines.length} productos · {formatCurrency(getOrderTotal(order))}</small>
+                      <small>{order.deliveryZone?.trim() || "Sin zona"} · {order.lines.length} productos · {formatCurrency(getOrderTotal(order))}</small>
                     </div>
                     <StatusBadge status={order.status} label={orderStatusLabel(order.status)} />
                     <button className="icon-button" onClick={() => onOpenDocument(order, "preparacion")} aria-label={`Abrir orden ${order.number}`}>

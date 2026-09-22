@@ -66,6 +66,7 @@ export type OrderStatus =
   | "confirmado"
   | "preparacion"
   | "preparado"
+  | "cargado"
   | "reparto"
   | "entregado"
   | "entregado_sin_cobrar"
@@ -100,6 +101,7 @@ export type Order = {
   createdAt: string;
   dueDate: string;
   deliveryZone: string;
+  dispatchTruck?: string;
   owner: string;
   notes: string;
   saleCondition?: string;
@@ -131,6 +133,8 @@ export type NewOrderDraft = {
   inquiryId?: string;
   lines: OrderLine[];
   notes: string;
+  deliveryZone: string;
+  dispatchTruck: string;
   saleCondition?: string;
   seller?: string;
 };

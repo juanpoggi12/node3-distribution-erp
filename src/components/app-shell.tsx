@@ -46,7 +46,7 @@ const navItems: Array<{ key: ViewKey; label: string; icon: LucideIcon }> = [
 const pageTitles: Partial<Record<ViewKey, { title: string; sub: string }>> = {
   inicio: { title: "Panel de trabajo", sub: "Lo importante para preparar los pedidos de hoy." },
   pedidos: { title: "Pedidos", sub: "Consulta el historial y genera sus documentos." },
-  preparacion: { title: "Preparación", sub: "Trabajo pendiente para el depósito." },
+  preparacion: { title: "Preparación y despacho", sub: "Pedidos y bultos por zona y camión." },
   productos: { title: "Productos y stock", sub: "Catálogo cargado desde el documento de referencia." },
   "nuevo-pedido": { title: "Nuevo pedido", sub: "Carga cantidades, controla stock y confirma." },
 };
@@ -55,6 +55,8 @@ const emptyDraft: NewOrderDraft = {
   customerId: "",
   lines: [],
   notes: "",
+  deliveryZone: "",
+  dispatchTruck: "",
   saleCondition: "CUENTA CORRIENTE",
   seller: "1",
 };
@@ -77,7 +79,7 @@ export function ErpApp() {
   const [draft, setDraft] = useState<NewOrderDraft>(emptyDraft);
   const [toast, setToast] = useState<string | null>(null);
   const [documentRequest, setDocumentRequest] = useState<{
-    order: Order;
+    orderId: string;
     type: OrderDocumentType;
   } | null>(null);
 
@@ -97,9 +99,13 @@ export function ErpApp() {
   }, [toast]);
 
   const pendingPreparation = useMemo(
-    () => state.orders.filter((order) => ["confirmado", "preparacion"].includes(order.status)).length,
+    () => state.orders.filter((order) => ["confirmado", "preparacion", "preparado"].includes(order.status)).length,
     [state.orders],
   );
+
+  const activeDocumentOrder = documentRequest
+    ? state.orders.find((order) => order.id === documentRequest.orderId)
+    : undefined;
 
   const todayLabel = new Intl.DateTimeFormat("es-AR", {
     weekday: "long",
@@ -108,7 +114,11 @@ export function ErpApp() {
   }).format(new Date());
 
   const openNewOrder = () => {
-    setDraft({ ...emptyDraft, customerId: state.customers[0]?.id ?? "" });
+    setDraft({
+      ...emptyDraft,
+      customerId: state.customers[0]?.id ?? "",
+      deliveryZone: state.customers[0]?.zone ?? "",
+    });
     setView("nuevo-pedido");
   };
 
@@ -168,6 +178,10 @@ export function ErpApp() {
       setToast("Selecciona un cliente y agrega al menos un producto.");
       return;
     }
+    if (!draft.deliveryZone.trim()) {
+      setToast("Indica la zona de envío antes de confirmar el pedido.");
+      return;
+    }
 
     for (const line of draft.lines) {
       const product = findProduct(state.products, line.productId);
@@ -188,7 +202,7 @@ export function ErpApp() {
     }));
     setDraft(emptyDraft);
     setView("pedidos");
-    setDocumentRequest({ order: newOrder, type: "nota" });
+    setDocumentRequest({ orderId: newOrder.id, type: "nota" });
     setToast(`Pedido #${newOrder.number} confirmado. El stock fue actualizado.`);
   };
 
@@ -199,17 +213,33 @@ export function ErpApp() {
       setToast("Ese cambio no corresponde al flujo de preparación.");
       return;
     }
+    if (status === "cargado" && (!current.deliveryZone?.trim() || current.deliveryZone.trim().toLocaleLowerCase("es-AR") === "sin zona" || !current.dispatchTruck?.trim())) {
+      setToast("Asigna una zona y un camión o recorrido antes de marcar el pedido como cargado.");
+      return;
+    }
     setState((previous) => ({
       ...previous,
       orders: previous.orders.map((order) =>
         order.id === orderId ? { ...order, status } : order,
       ),
     }));
-    setToast(status === "preparacion" ? "Pedido enviado a preparación." : "Pedido marcado como preparado.");
+    setToast(status === "preparacion" ? "Pedido enviado a preparación." : status === "preparado" ? "Pedido marcado como preparado." : "Pedido cargado y retirado del conteo pendiente.");
   };
 
   const openDocument = (order: Order, type: OrderDocumentType) => {
-    setDocumentRequest({ order, type });
+    setDocumentRequest({ orderId: order.id, type });
+  };
+
+  const assignDispatch = (orderId: string, deliveryZone: string, dispatchTruck: string) => {
+    setState((current) => ({
+      ...current,
+      orders: current.orders.map((order) =>
+        order.id === orderId
+          ? { ...order, deliveryZone: deliveryZone.trim() || "Sin zona", dispatchTruck: dispatchTruck.trim() }
+          : order,
+      ),
+    }));
+    setToast("Destino del pedido actualizado.");
   };
 
   const addCustomer = (data: Pick<Customer, "businessName" | "contactName" | "address" | "city">) => {
@@ -233,7 +263,7 @@ export function ErpApp() {
       notes: "Alta rápida desde el pedido.",
     };
     setState((current) => ({ ...current, customers: [...current.customers, customer] }));
-    setDraft((current) => ({ ...current, customerId: id }));
+    setDraft((current) => ({ ...current, customerId: id, deliveryZone: data.city, dispatchTruck: "" }));
     setToast("Cliente agregado al pedido.");
     return id;
   };
@@ -345,10 +375,10 @@ export function ErpApp() {
             <DashboardView state={state} onNavigate={setView} onNewOrder={openNewOrder} onOpenDocument={openDocument} />
           )}
           {view === "pedidos" && (
-            <OrdersView state={state} onOpenDocument={openDocument} onNewOrder={openNewOrder} />
+            <OrdersView state={state} onOpenDocument={openDocument} onNewOrder={openNewOrder} onAssignDispatch={assignDispatch} />
           )}
           {view === "preparacion" && (
-            <PreparationView state={state} onUpdateStatus={updateOrderStatus} onOpenDocument={openDocument} />
+            <PreparationView state={state} onUpdateStatus={updateOrderStatus} onOpenDocument={openDocument} onAssignDispatch={assignDispatch} />
           )}
           {view === "nuevo-pedido" && (
             <NewOrderView
@@ -390,11 +420,11 @@ export function ErpApp() {
         })}
       </nav>
 
-      {documentRequest && (
+      {documentRequest && activeDocumentOrder && (
         <OrderDocumentModal
           type={documentRequest.type}
-          order={documentRequest.order}
-          customer={state.customers.find((customer) => customer.id === documentRequest.order.customerId)}
+          order={activeDocumentOrder}
+          customer={state.customers.find((customer) => customer.id === activeDocumentOrder.customerId)}
           products={state.products}
           onClose={() => setDocumentRequest(null)}
         />

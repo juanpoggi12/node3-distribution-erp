@@ -17,6 +17,14 @@ Este documento separa las decisiones ya construidas para la demostración de las
 - Confirmar tratamiento de IVA, Ingresos Brutos y cualquier percepción o impuesto.
 - Definir si la numeración debe ser única para pedidos, remitos y facturas o si cada documento tendrá su propia secuencia.
 
+## Despacho por zonas
+
+- Validar las zonas reales de reparto, sus nombres y si deben asociarse al cliente por defecto o elegirse siempre en cada pedido.
+- Definir cómo identifica El Bayo cada camión o recorrido y si un pedido puede dividirse entre dos vehículos.
+- Confirmar si el conteo útil para carga es por pedidos, bultos, cajas u otra unidad; el prototipo suma los bultos de las líneas del pedido.
+- Validar quién asigna el camión y en qué momento se considera "cargado" un pedido. El prototipo exige zona y camión/recorrido antes de cerrar esa etapa.
+- Confirmar si se necesita una planilla de carga por camión o zona, además de la nota y la orden individuales.
+
 ## Consultas y toma de pedidos — siguiente etapa
 
 Problema informado: llegan pedidos y consultas en WhatsApp, Instagram, mensajes escritos y audios; alguien debe escuchar, interpretar y volver a cargarlos manualmente.
@@ -30,4 +38,3 @@ Propuesta para evaluar después del flujo principal:
 5. Trazabilidad entre el mensaje original y el pedido generado.
 
 Preguntas clave: canales prioritarios, volumen diario, calidad habitual de los audios, forma en que los clientes nombran los productos y necesidad de conservar consentimiento/historial.
-

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-22T13:46:00.2626782-03:00",
+  "generatedAt": "2026-09-22T19:30:53Z",
   "title": "Design System: El Bayo Distribuciones",
   "extensions": {
     "colorMeta": {
@@ -198,6 +198,13 @@
       "description": "Representación reconocible de la orden física dentro del estado operativo.",
       "html": "<article class=\"ds-paper\"><span>ORDEN DE PREPARACIÓN</span><strong>#000001</strong><i></i><i></i><small>A4 · lista para imprimir</small></article>",
       "css": ".ds-paper { display:flex; min-height:180px; flex-direction:column; padding:23px 24px; border-radius:5px; background:#fffef9; box-shadow:0 16px 38px rgba(0,0,0,.23); color:var(--ink,#17231e); font-family:Manrope,Segoe UI,sans-serif; transform:rotate(-.7deg); } .ds-paper span { color:var(--muted,#68766f); font-size:10.5px; font-weight:800; letter-spacing:.06em; } .ds-paper strong { margin:4px 0 15px; color:var(--green-900,#173d32); font-size:26px; } .ds-paper i { height:1px; margin:8px 0; background:#ccd3cf; } .ds-paper i:nth-of-type(2) { width:78%; } .ds-paper small { margin-top:auto; color:var(--muted,#68766f); font-size:10.5px; } .ds-paper:hover { transform:rotate(0deg) translateY(-1px); } .ds-paper:focus-visible { outline:3px solid rgba(184,123,49,.35); outline-offset:2px; }"
+    },
+    {
+      "name": "Dispatch Group",
+      "kind": "custom",
+      "description": "Zona pendiente con totales, camión o recorrido y pedido accionable en una sola jerarquía.",
+      "html": "<section class=\"ds-dispatch-group\"><header class=\"ds-dispatch-header\"><div><small>Zona de envío</small><h3>Rafaela y zona</h3></div><p><strong>1 pedido</strong> · 84 bultos</p><span class=\"ds-dispatch-truck\">Sin camión · 1 pedido · 84 bultos</span></header><div class=\"ds-dispatch-order\"><div><small>Pedido</small><strong>#000001</strong></div><div><strong>MARIBEL BENITEZ</strong><small>17 productos · 84 bultos</small></div><div><strong>Rafaela y zona</strong><small>Sin camión asignado</small></div><button class=\"ds-dispatch-action\">Orden</button></div></section>",
+      "css": ".ds-dispatch-group { overflow:hidden; border:1px solid var(--line,#d9e0dc); border-radius:var(--radius-lg,15px); background:#fff; color:var(--ink,#17231e); font-family:Manrope,Segoe UI,sans-serif; } .ds-dispatch-header { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px 14px; background:var(--green-50,#edf6f2); } .ds-dispatch-header small,.ds-dispatch-order small { display:block; color:var(--muted,#68766f); font-size:10.5px; } .ds-dispatch-header h3 { margin:2px 0 0; color:var(--green-900,#173d32); font-size:18px; } .ds-dispatch-header p { margin:0; color:var(--ink-soft,#405149); font-size:12px; font-variant-numeric:tabular-nums; } .ds-dispatch-header p strong { color:var(--ink,#17231e); } .ds-dispatch-truck { display:inline-flex; flex-basis:100%; width:max-content; max-width:100%; padding:7px 9px; border:1px solid #ead5a6; border-radius:7px; background:var(--warning-soft,#fff3d9); color:var(--warning,#8a5a12); font-size:11px; } .ds-dispatch-order { display:flex; flex-wrap:wrap; align-items:center; gap:12px 18px; padding:15px 18px; border-top:1px solid var(--line,#d9e0dc); font-size:12px; } .ds-dispatch-order > div { display:flex; min-width:90px; flex-direction:column; } .ds-dispatch-order > div:first-child strong { color:var(--green-700,#276a54); font-size:17px; font-variant-numeric:tabular-nums; } .ds-dispatch-order > div:nth-child(2) { flex:1; } .ds-dispatch-order > div:nth-child(3) strong { color:var(--green-900,#173d32); } .ds-dispatch-action { min-height:40px; padding:9px 14px; border:1px solid var(--line-strong,#bcc8c2); border-radius:9px; background:#fff; color:var(--ink,#17231e); font:750 12px/1 Manrope,Segoe UI,sans-serif; } .ds-dispatch-action:hover { border-color:var(--green-700,#276a54); background:var(--green-50,#edf6f2); } .ds-dispatch-action:focus-visible { outline:3px solid rgba(184,123,49,.35); outline-offset:2px; }"
     }
   ],
   "narrative": {
