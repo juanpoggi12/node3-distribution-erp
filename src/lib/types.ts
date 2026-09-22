@@ -4,11 +4,14 @@ export type CustomerStatus = "activo" | "pausado" | "moroso";
 
 export type Customer = {
   id: string;
+  code?: string;
   businessName: string;
   contactName: string;
   phone: string;
   address: string;
   city: string;
+  postalCode?: string;
+  province?: string;
   zone: string;
   customerType: string;
   priceList: PriceList;
@@ -29,6 +32,7 @@ export type Product = {
   minStock: number;
   prices: Record<PriceList, number>;
   active: boolean;
+  allowsDecimals?: boolean;
 };
 
 export type InquiryStatus =
@@ -71,6 +75,7 @@ export type OrderStatus =
 export type OrderLine = {
   productId: string;
   quantity: number;
+  packages?: number;
   unitPrice: number;
 };
 
@@ -97,6 +102,9 @@ export type Order = {
   deliveryZone: string;
   owner: string;
   notes: string;
+  saleCondition?: string;
+  seller?: string;
+  externalReference?: string;
   paidAmount: number;
   payments?: Payment[];
 };
@@ -111,6 +119,8 @@ export type DemoState = {
 export type ViewKey =
   | "inicio"
   | "pedidos"
+  | "preparacion"
+  | "nuevo-pedido"
   | "clientes"
   | "productos"
   | "cobrar"
@@ -121,4 +131,8 @@ export type NewOrderDraft = {
   inquiryId?: string;
   lines: OrderLine[];
   notes: string;
+  saleCondition?: string;
+  seller?: string;
 };
+
+export type OrderDocumentType = "nota" | "preparacion";

@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-22T13:46:00.2626782-03:00",
+  "title": "Design System: El Bayo Distribuciones",
+  "extensions": {
+    "colorMeta": {
+      "deep-warehouse": {
+        "role": "primary",
+        "displayName": "Verde Depósito Profundo",
+        "canonical": "#102d25",
+        "tonalRamp": ["#071a15", "#102d25", "#173d32", "#205443", "#3f735f", "#76a08e", "#b7d0c4", "#edf6f2"]
+      },
+      "warehouse-green": {
+        "role": "primary",
+        "displayName": "Verde de Almacén",
+        "canonical": "#173d32",
+        "tonalRamp": ["#081b16", "#102d25", "#173d32", "#276a54", "#4c846e", "#82aa98", "#c2d8ce", "#f0f7f4"]
+      },
+      "action-green": {
+        "role": "primary",
+        "displayName": "Verde de Acción",
+        "canonical": "#205443",
+        "tonalRamp": ["#0a1d17", "#123329", "#205443", "#276a54", "#4f856f", "#87ad9c", "#c4dbd1", "#f1f8f5"]
+      },
+      "operational-green": {
+        "role": "primary",
+        "displayName": "Verde Operativo",
+        "canonical": "#276a54",
+        "tonalRamp": ["#0b211a", "#14392e", "#205443", "#276a54", "#4f8871", "#88b29f", "#c7ded4", "#f2f9f6"]
+      },
+      "green-wash": {
+        "role": "neutral",
+        "displayName": "Lavado Verde",
+        "canonical": "#edf6f2",
+        "tonalRamp": ["#12251e", "#29443a", "#49675b", "#708e82", "#9bb6aa", "#c2d8ce", "#dfeee7", "#edf6f2"]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Lienzo de Depósito",
+        "canonical": "#f2f4f1",
+        "tonalRamp": ["#1e2420", "#3c4540", "#606963", "#879089", "#afb6b1", "#d0d5d1", "#e5e9e6", "#f2f4f1"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Papel Limpio",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#252525", "#484848", "#6c6c6c", "#919191", "#b7b7b7", "#d6d6d6", "#ededed", "#ffffff"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta de Inventario",
+        "canonical": "#17231e",
+        "tonalRamp": ["#0b100e", "#17231e", "#334039", "#536159", "#78857e", "#a5aea9", "#d3d8d5", "#f3f5f4"]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Tinta Suave",
+        "canonical": "#405149",
+        "tonalRamp": ["#111714", "#28332e", "#405149", "#617169", "#84928b", "#abb4af", "#d5dad7", "#f3f5f4"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Texto Secundario",
+        "canonical": "#68766f",
+        "tonalRamp": ["#171c19", "#343d38", "#505c56", "#68766f", "#89958f", "#adb6b1", "#d4dad7", "#f4f6f5"]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Línea de Estantería",
+        "canonical": "#d9e0dc",
+        "tonalRamp": ["#19201c", "#37413c", "#5a655f", "#818c86", "#a9b2ad", "#c5cdc9", "#d9e0dc", "#f3f6f4"]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Línea de Control",
+        "canonical": "#bcc8c2",
+        "tonalRamp": ["#17201c", "#34423b", "#526159", "#73827a", "#95a39c", "#bcc8c2", "#dce3df", "#f4f7f5"]
+      },
+      "warehouse-amber": {
+        "role": "secondary",
+        "displayName": "Ámbar de Bulto",
+        "canonical": "#b87b31",
+        "tonalRamp": ["#2b1908", "#533313", "#7c4f1d", "#9b6220", "#b87b31", "#d09b59", "#e7c69a", "#f7ead8"]
+      },
+      "amber-wash": {
+        "role": "secondary",
+        "displayName": "Lavado Ámbar",
+        "canonical": "#f7ead8",
+        "tonalRamp": ["#2b1c0d", "#59401f", "#856436", "#b18959", "#d1ac7d", "#e7caa2", "#f2ddc3", "#f7ead8"]
+      },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "Advertencia Ocre",
+        "canonical": "#8a5a12",
+        "tonalRamp": ["#241603", "#4b2f06", "#6b430b", "#8a5a12", "#ae7b2d", "#d09f58", "#edcd96", "#fff3d9"]
+      },
+      "warning-wash": {
+        "role": "tertiary",
+        "displayName": "Lavado de Advertencia",
+        "canonical": "#fff3d9",
+        "tonalRamp": ["#291d08", "#57421d", "#826734", "#ad8d53", "#d0b477", "#ead39f", "#f8e7c5", "#fff3d9"]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Rojo de Corrección",
+        "canonical": "#a63d35",
+        "tonalRamp": ["#2a0c0a", "#531b17", "#7d2b25", "#a63d35", "#c5635c", "#dc918c", "#efc4c1", "#f9e7e5"]
+      },
+      "danger-wash": {
+        "role": "tertiary",
+        "displayName": "Lavado de Corrección",
+        "canonical": "#f9e7e5",
+        "tonalRamp": ["#2b100e", "#592725", "#85423e", "#ad625d", "#ce8e89", "#e4b8b4", "#f1d5d2", "#f9e7e5"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Estado Operativo", "purpose": "Mensajes de prioridad en el primer viewport." },
+      "headline": { "displayName": "Título de Pantalla", "purpose": "Encabezados de vistas y secciones." },
+      "title": { "displayName": "Título de Panel", "purpose": "Agrupaciones de trabajo y tarjetas." },
+      "body": { "displayName": "Lectura Operativa", "purpose": "Instrucciones y contenido principal." },
+      "label": { "displayName": "Acción y Dato", "purpose": "Botones, etiquetas y metadatos breves." }
+    },
+    "shadows": [
+      { "name": "ambient-low", "value": "0 3px 12px rgba(20, 44, 35, 0.07)", "purpose": "Separación leve de editores y paneles activos." },
+      { "name": "modal", "value": "0 22px 60px rgba(11, 31, 24, 0.22)", "purpose": "Documentos, diálogos y notificaciones flotantes." },
+      { "name": "paper", "value": "0 16px 38px rgba(0, 0, 0, 0.23)", "purpose": "Representación física de la orden sobre la mesa." }
+    ],
+    "motion": [
+      { "name": "state-fast", "value": "160ms ease", "purpose": "Hover y cambios de color en controles." },
+      { "name": "paper-settle", "value": "520ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Entrada única y suave de la hoja de preparación." }
+    ],
+    "breakpoints": [
+      { "name": "builder-collapse", "value": "1320px" },
+      { "name": "mobile-navigation", "value": "1024px" },
+      { "name": "stacked-content", "value": "760px" },
+      { "name": "a4-scale-md", "value": "620px" },
+      { "name": "a4-scale-sm", "value": "520px" },
+      { "name": "a4-scale-xs", "value": "430px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción principal de avance o confirmación.",
+      "html": "<button class=\"ds-btn-primary\">Confirmar pedido</button>",
+      "css": ".ds-btn-primary { min-height:40px; padding:9px 14px; border:1px solid var(--green-800,#205443); border-radius:9px; background:var(--green-800,#205443); color:#fff; font:750 12px/1 Manrope,Segoe UI,sans-serif; transition:background 160ms ease,border-color 160ms ease,transform 160ms ease; } .ds-btn-primary:hover { transform:translateY(-1px); border-color:var(--green-950,#102d25); background:var(--green-950,#102d25); } .ds-btn-primary:focus-visible { outline:3px solid rgba(184,123,49,.35); outline-offset:2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Acción complementaria sin competir con el siguiente paso.",
+      "html": "<button class=\"ds-btn-secondary\">Ver detalle</button>",
+      "css": ".ds-btn-secondary { min-height:40px; padding:9px 14px; border:1px solid var(--line-strong,#bcc8c2); border-radius:9px; background:#fff; color:var(--ink,#17231e); font:750 12px/1 Manrope,Segoe UI,sans-serif; transition:background 160ms ease,border-color 160ms ease,transform 160ms ease; } .ds-btn-secondary:hover { transform:translateY(-1px); border-color:#879990; background:#f8faf8; } .ds-btn-secondary:focus-visible { outline:3px solid rgba(184,123,49,.35); outline-offset:2px; }"
+    },
+    {
+      "name": "Operational Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Campo legible para búsqueda, cantidades y datos comerciales.",
+      "html": "<input class=\"ds-field\" value=\"MARIBEL BENITEZ\" aria-label=\"Cliente\">",
+      "css": ".ds-field { width:100%; min-height:42px; padding:9px 11px; border:1px solid var(--line-strong,#bcc8c2); border-radius:9px; background:#fff; color:var(--ink,#17231e); font:400 14px/1.45 Manrope,Segoe UI,sans-serif; outline:none; } .ds-field:hover { border-color:#879990; } .ds-field:focus { border-color:var(--green-700,#276a54); box-shadow:0 0 0 3px rgba(39,106,84,.13); }"
+    },
+    {
+      "name": "Navigation Item",
+      "kind": "nav",
+      "description": "Destino operativo con estado activo inequívoco.",
+      "html": "<nav class=\"ds-nav\"><button class=\"ds-nav-item ds-active\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M3 12h7V3H3v9Zm0 9h7v-5H3v5Zm11 0h7v-9h-7v9Zm0-18v5h7V3h-7Z\"/></svg>Inicio</button><button class=\"ds-nav-item\">Pedidos</button></nav>",
+      "css": ".ds-nav { display:grid; gap:5px; width:220px; padding:10px; background:var(--green-950,#102d25); } .ds-nav-item { display:flex; min-height:44px; align-items:center; gap:11px; padding:10px 12px; border:0; border-radius:10px; background:transparent; color:#a9c1b7; font:650 13px/1.2 Manrope,Segoe UI,sans-serif; text-align:left; } .ds-nav-item:hover { background:rgba(255,255,255,.06); color:#fff; } .ds-nav-item.ds-active { background:#f3f7f4; color:var(--green-900,#173d32); } .ds-nav-item:focus-visible { outline:3px solid rgba(184,123,49,.35); outline-offset:2px; }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "description": "Estado textual compacto con apoyo de color semántico.",
+      "html": "<span class=\"ds-chip\">Confirmado</span>",
+      "css": ".ds-chip { display:inline-flex; align-items:center; gap:5px; padding:5px 9px; border-radius:999px; background:#e4eef5; color:#315b74; font:750 11px/1 Manrope,Segoe UI,sans-serif; white-space:nowrap; } .ds-chip:hover { filter:saturate(1.08); } .ds-chip:focus-visible { outline:3px solid rgba(184,123,49,.35); outline-offset:2px; }"
+    },
+    {
+      "name": "Data Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Contenedor plano para tablas, listados y formularios.",
+      "html": "<section class=\"ds-panel\"><h3>Pedidos en movimiento</h3><p>Los que necesitan una acción ahora.</p></section>",
+      "css": ".ds-panel { padding:20px 21px; border:1px solid var(--line,#d9e0dc); border-radius:15px; background:var(--surface,#fff); color:var(--ink,#17231e); font-family:Manrope,Segoe UI,sans-serif; } .ds-panel h3 { margin:0; font-size:16px; letter-spacing:-.015em; } .ds-panel p { margin:4px 0 0; color:var(--muted,#68766f); font-size:12px; } .ds-panel:hover { border-color:var(--line-strong,#bcc8c2); } .ds-panel:focus-within { outline:3px solid rgba(184,123,49,.2); outline-offset:2px; }"
+    },
+    {
+      "name": "Recommended Action",
+      "kind": "custom",
+      "description": "Tarjeta ámbar reservada para el siguiente paso del flujo.",
+      "html": "<button class=\"ds-next-action\"><span class=\"ds-next-mark\">+</span><span><strong>Registrar un pedido</strong><small>Carga cliente, productos y cantidades</small></span></button>",
+      "css": ".ds-next-action { display:flex; width:100%; min-height:83px; align-items:center; gap:12px; padding:15px 17px; border:1px solid var(--gold,#b87b31); border-radius:13px; background:var(--gold-soft,#f7ead8); color:var(--ink,#17231e); font-family:Manrope,Segoe UI,sans-serif; text-align:left; } .ds-next-mark { display:grid; width:44px; height:44px; place-items:center; border-radius:11px; background:var(--gold,#b87b31); color:#fff; font-size:24px; } .ds-next-action span:last-child { display:flex; flex-direction:column; gap:3px; } .ds-next-action strong { font-size:12px; } .ds-next-action small { color:var(--muted,#68766f); font-size:11px; } .ds-next-action:hover { border-color:var(--gold-strong,#9b6220); transform:translateY(-1px); } .ds-next-action:focus-visible { outline:3px solid rgba(184,123,49,.35); outline-offset:2px; }"
+    },
+    {
+      "name": "Paper Cue",
+      "kind": "custom",
+      "description": "Representación reconocible de la orden física dentro del estado operativo.",
+      "html": "<article class=\"ds-paper\"><span>ORDEN DE PREPARACIÓN</span><strong>#000001</strong><i></i><i></i><small>A4 · lista para imprimir</small></article>",
+      "css": ".ds-paper { display:flex; min-height:180px; flex-direction:column; padding:23px 24px; border-radius:5px; background:#fffef9; box-shadow:0 16px 38px rgba(0,0,0,.23); color:var(--ink,#17231e); font-family:Manrope,Segoe UI,sans-serif; transform:rotate(-.7deg); } .ds-paper span { color:var(--muted,#68766f); font-size:10.5px; font-weight:800; letter-spacing:.06em; } .ds-paper strong { margin:4px 0 15px; color:var(--green-900,#173d32); font-size:26px; } .ds-paper i { height:1px; margin:8px 0; background:#ccd3cf; } .ds-paper i:nth-of-type(2) { width:78%; } .ds-paper small { margin-top:auto; color:var(--muted,#68766f); font-size:10.5px; } .ds-paper:hover { transform:rotate(0deg) translateY(-1px); } .ds-paper:focus-visible { outline:3px solid rgba(184,123,49,.35); outline-offset:2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "La Mesa del Depósito",
+    "overview": "El sistema se siente como una mesa de trabajo ordenada: sobria, resistente y preparada para decidir con rapidez. El verde profundo concentra la navegación y las acciones operativas; el blanco y el gris verdoso sostienen tablas y formularios legibles; el ámbar aparece con moderación para señalar el siguiente paso. El documento físico es parte de la identidad, no un apéndice. Las superficies de papel, la numeración tabular y la composición A4 conectan la pantalla con la tarea concreta de armar, controlar e imprimir pedidos.",
+    "keyCharacteristics": [
+      "Verde de depósito y papel cálido como pareja dominante.",
+      "Jerarquía fuerte, lenguaje directo y densidad operativa controlada.",
+      "Bordes finos, esquinas suaves y elevación reservada para elementos que flotan.",
+      "Cantidades, códigos y totales siempre visibles y fáciles de comparar."
+    ],
+    "rules": [
+      { "name": "The Amber Means Next Rule", "body": "El ámbar se reserva para la acción recomendada, el monograma o una advertencia; nunca compite con varias llamadas simultáneas.", "section": "colors" },
+      { "name": "The Operational Contrast Rule", "body": "Códigos, nombres, cantidades y estados usan tinta o verde con contraste alto; ningún dato central depende del gris tenue.", "section": "colors" },
+      { "name": "The Numbers Are Tools Rule", "body": "Números de pedido, códigos, stock, cantidades y dinero usan cifras tabulares para que la comparación vertical sea inmediata.", "section": "typography" },
+      { "name": "The Paper Earns the Shadow Rule", "body": "Las sombras intensas pertenecen a objetos que flotan o representan papel; un panel de datos en reposo se define con borde, no con profundidad artificial.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do mostrar la próxima acción con un verbo claro y un único énfasis primario.",
+      "Do mantener códigos, cantidades, stock y totales a 11–12px como mínimo en interfaz operativa.",
+      "Do usar iconos lineales junto con texto cuando la acción no sea universal.",
+      "Do conservar el documento físico como referencia visual en flujos de pedido y preparación.",
+      "Do adaptar la densidad por reflujo y apilado, no eliminando información crítica."
+    ],
+    "donts": [
+      "Don't usar ámbar en varias acciones competidoras dentro del mismo contexto.",
+      "Don't colocar datos centrales con colores tenues o tipografía menor que el piso operativo.",
+      "Don't convertir cada panel en una tarjeta elevada; borde y ritmo son la separación predeterminada.",
+      "Don't sustituir los cuatro destinos operativos por módulos futuros o secundarios.",
+      "Don't escalar o recortar la salida física durante la impresión."
+    ]
+  }
+}
